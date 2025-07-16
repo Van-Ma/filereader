@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>File Reader App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <h1>File Reader</h1>
+
+  <div class="container">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div id="tab-bar" class="tab-bar"></div>
+       <div id="drop-area">Drag & Drop your file here</div>
+            <div class="search-row">
+        <input type="text" id="search-input" placeholder="Search text..." />
+        <button id="search-btn" disabled>Search</button>
+      </div>
+      <div id="tab-container" class="tab-container"></div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div id="chat-output" class="chat-output"></div>
+
+      <div class="chat-controls">
+        <input type="text" id="ai-input" placeholder="Ask AI anything..." />
+        <div class="chat-buttons">
+          <button id="summarize-btn">Summarize</button>
+          <button id="cite-btn">Cite</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const tabBar = document.getElementById('tab-bar');
+    const tabContainer = document.getElementById('tab-container');
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+
+    let tabs = [];
+    let currentTabId = null;
+    window.rawText = '';
+
+    function createTab(filePath, content) {
+      const id = Date.now().toString();
+      const name = filePath.split(/[/\\]/).pop();
+
+      tabs.push({ id, name, content, filePath });
+
+      const tabButton = document.createElement('div');
+      tabButton.className = 'tab';
+      tabButton.dataset.tabId = id;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = name;
+      nameSpan.onclick = () => switchTab(id);
+
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '×';
+      closeBtn.className = 'close-tab';
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        closeTab(id);
+      };
+
+      tabButton.appendChild(nameSpan);
+      tabButton.appendChild(closeBtn);
+      tabBar.appendChild(tabButton);
+
+      const contentDiv = document.createElement('pre');
+      contentDiv.className = 'tab-content';
+      contentDiv.dataset.tabId = id;
+      contentDiv.textContent = content;
+      contentDiv.style.display = 'none';
+      tabContainer.appendChild(contentDiv);
+
+      switchTab(id);
+    }
+
+    function switchTab(id) {
+      currentTabId = id;
+      tabs.forEach(tab => {
+        const tabEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
+        tabEl.style.display = tab.id === id ? 'block' : 'none';
+      });
+
+      const tabButtons = tabBar.querySelectorAll('.tab');
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      const activeBtn = tabBar.querySelector(`.tab[data-tab-id="${id}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const activeTab = tabs.find(t => t.id === id);
+      window.rawText = activeTab?.content || '';
+      searchInput.value = '';
+      searchBtn.disabled = true;
+    }
+
+    function closeTab(id) {
+      const index = tabs.findIndex(t => t.id === id);
+      if (index === -1) return;
+
+      // Remove tab and content
+      tabs.splice(index, 1);
+      const tabEl = tabBar.querySelector(`.tab[data-tab-id="${id}"]`);
+      const contentEl = tabContainer.querySelector(`.tab-content[data-tab-id="${id}"]`);
+      if (tabEl) tabEl.remove();
+      if (contentEl) contentEl.remove();
+
+      // Switch to another tab if this one was active
+      if (currentTabId === id) {
+        if (tabs.length > 0) {
+          switchTab(tabs[Math.max(index - 1, 0)].id);
+        } else {
+          currentTabId = null;
+          window.rawText = '';
+          searchInput.value = '';
+          searchBtn.disabled = true;
+        }
+      }
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlightText(text, query) {
+      if (!query) return text;
+      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+      return text.replace(regex, '<mark>$1</mark>');
+    }
+
+    function performSearch() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      if (!window.rawText || !window.rawText.trim()) {
+        const activeDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
+        activeDiv.innerHTML = '<p style="color: red;">⚠ Please upload a file first.</p>';
+        return;
+      }
+
+      const highlighted = highlightText(window.rawText, query);
+      const contentDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
+      contentDiv.innerHTML = highlighted;
+    }
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+      dropArea.classList.remove('dragover');
+    });
+
+    dropArea.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropArea.classList.remove('dragover');
+
+      const files = event.dataTransfer.files;
+      if (files.length === 0) return;
+
+      const file = files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      const allowed = ['txt', 'pdf', 'docx', 'md'];
+      if (!allowed.includes(ext)) {
+        alert('Unsupported file type!');
+        return;
+      }
+
+      if (window.electronAPI?.parseFile) {
+        window.electronAPI.parseFile(file.path)
+          .then(result => {
+            const userChoice = confirm('Open in a new tab? (Cancel = Replace current tab)');
+            if (userChoice) {
+              createTab(file.path, result);
+            } else {
+              if (currentTabId) {
+                const tab = tabs.find(t => t.id === currentTabId);
+                tab.content = result;
+                tab.filePath = file.path;
+                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
+                contentEl.textContent = result;
+                switchTab(tab.id);
+              } else {
+                createTab(file.path, result);
+              }
+            }
+          })
+          .catch(() => alert('Error reading file.'));
+      }
+    });
+
+    if (window.electronAPI?.onFileOpened) {
+      window.electronAPI.onFileOpened((filePath) => {
+        window.electronAPI.parseFile(filePath)
+          .then(result => {
+            const userChoice = confirm('Open in a new tab? (Cancel = Replace current tab)');
+            if (userChoice) {
+              createTab(filePath, result);
+            } else {
+              if (currentTabId) {
+                const tab = tabs.find(t => t.id === currentTabId);
+                tab.content = result;
+                tab.filePath = filePath;
+                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
+                contentEl.textContent = result;
+                switchTab(tab.id);
+              } else {
+                createTab(filePath, result);
+              }
+            }
+          })
+          .catch(() => alert('Error reading file.'));
+      });
+    }
+
+    searchInput.addEventListener('input', () => {
+      searchBtn.disabled = !searchInput.value.trim();
+    });
+
+    searchBtn.addEventListener('click', performSearch);
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') performSearch();
+    });
+  </script>
+</body>
+</html>
