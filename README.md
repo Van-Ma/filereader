@@ -7,10 +7,10 @@
   </tr>
 </table>
 
-### A simple, multi-model chatbot built with Langchain and Hugging Face models running locally with an HTTP API to a beautiful Electron frontend.  
+### A simple, multi-model chatbot running on local LLMs through Langchain and Hugging Face with a beautiful Electron frontend.  
 
 
-#### Previews, searches, and answers complex questions about documents. Choose from many SoTA edge models running locally, with optimizations to kvcache.
+#### Previews, searches, and answers complex questions about documents. Supports many SoTA edge models running locally. Has optimizations to kvcache.
 
 ---
 
