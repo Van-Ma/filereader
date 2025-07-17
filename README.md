@@ -4,75 +4,55 @@ A simple, multi-model chatbot backend built with Langchain, Hugging Face, and Fl
 
 ---
 
-## 1. Requirements
+### 1. Requirements
 
-This project requires Python 3.9+ and Node.js/npm for the respective backend and frontend components.
+This project requires Python 3.9+ and Node.js/npm.
 
-- **Backend:** `flask`, `torch`, `transformers`, `langchain`, and other packages listed in `python/requirements.txt`.
 - **Frontend:** ___Fill in frontend requirements (e.g., React, Vue)___
+- **Backend:** `flask`, `torch`, `transformers`, `langchain`, and other packages listed in `python/requirements.txt`.
 
 ---
 
-## 2. Backend Setup
+### 2. Setup & Installation
 
-### Step A: Install Dependencies
-Navigate to your project's root directory in the terminal and run the following command to install the required Python packages:
+**A. Frontend Dependencies**
+
+___(Fill in the command to install frontend dependencies, e.g., `npm install`)___
+
+**B. Backend Dependencies**
+
+Navigate to the project's root directory and run:
 ```bash
 pip install -r python/requirements.txt
 ```
 
-### Step B: Authenticate with Hugging Face
-To use gated models like Llama 3.1, you must authenticate your machine. Run this command and enter your Hugging Face access token when prompted.
+**C. Hugging Face Authentication**
+
+To use gated models like Llama 3.1, run this command and enter your Hugging Face access token:
 ```bash
 huggingface-cli login
 ```
 
 ---
 
-## 3. Running the Application
+### 3. Running the Application
 
-### Backend
-Start the Flask server by running the `http_api.py` file from the project's **root directory**:
+**A. Frontend**
+
+___(Fill in the command to start the frontend development server here, e.g., `npm run dev`)___
+
+**B. Backend**
+
+Start the Flask server from the project's **root directory**:
 ```bash
 python python/http_api.py
 ```
 The server will start on `http://127.0.0.1:5000`.
 
-### Frontend
-___(Fill in the command to start the frontend development server here, e.g., `npm run dev`)___
-
 ---
 
-## 4. API Endpoints
+### 4. Project Documentation
 
-The backend exposes the following endpoints:
+For detailed documentation on the frontend, backend, and API, please see the `docs.md` file.
 
-#### `/select_model` (POST)
-Initializes a model for a user session. **This must be called before `/chat`.**
-- **Body (JSON):**
-  ```json
-  {
-    "sessionId": "some-unique-user-id",
-    "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
-  }
-  ```
-
-#### `/chat` (POST)
-Sends a message to the selected model for a session.
-- **Body (JSON):**
-  ```json
-  {
-    "sessionId": "some-unique-user-id",
-    "message": "Hello, what is your name?",
-    "fileContent": "Optional: The full text of a document."
-  }
-  ```
-
-#### `/delete_session` (POST)
-Deletes a session and releases its model from memory.
-- **Body (JSON):**
-  ```json
-  {
-    "sessionId": "some-unique-user-id"
-  }
-  
+[**View Full Documentation (docs.md)**](./docs.md)
