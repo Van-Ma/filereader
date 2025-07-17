@@ -1,6 +1,6 @@
-# Python & JavaScript Chatbot
+# File analysis chatbot
 
-A simple, multi-model chatbot backend built with Flask and Hugging Face, designed to be used with a JavaScript frontend.
+A simple, multi-model chatbot backend built with Langchain, Hugging Face, and Flask with a beautiful Electron frontend.
 
 ---
 
