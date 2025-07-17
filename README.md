@@ -1,5 +1,12 @@
 # File analysis chatbot
 
+<table>
+  <tr>
+    <td><img src="./docs/assets/chat_preview_1.png" alt="Chatbot Preview 1" width="400"></td>
+    <td><img src="./docs/assets/chat_preview_2.png" alt="Chatbot Preview 2" width="400"></td>
+  </tr>
+</table>
+
 A simple, multi-model chatbot backend built with Langchain, Hugging Face, and Flask with a beautiful Electron frontend.
 
 ---
@@ -53,6 +60,6 @@ The server will start on `http://127.0.0.1:5000`.
 
 ### 4. Project Documentation
 
-For detailed documentation on the frontend, backend, and API, please see the `docs.md` file.
+For detailed documentation on the frontend, backend, and API, please see the `docs.md` file inside the `docs/` folder.
 
-[**View Full Documentation (docs.md)**](./docs.md)
+[**View Full Documentation (docs/docs.md)**](./docs/docs.md)
