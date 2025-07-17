@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 flask
 flask-cors
 torch
@@ -6,4 +7,14 @@ accelerate
 sentencepiece
 langchain
 langchain-core
+=======
+flask
+flask-cors
+torch
+transformers
+accelerate
+sentencepiece
+langchain
+langchain-core
+>>>>>>> 5d28fe3f58b0d36b8c1237bb668d535e856fa271
 pydantic
