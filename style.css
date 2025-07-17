@@ -3,11 +3,59 @@ body {
   font-family: Arial, sans-serif;
 }
 
-h1 {
-  text-align: center;
-  margin-top: 10px;
+.nav-bar{
+  background-color: rgb(206, 206, 206);
+  padding: 5px;
+  box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none; 
 }
 
+#file-menu:hover{
+  color: blue;
+}
+
+#file-menu{
+  font-size: 10pt;
+}
+
+#file-submenu{
+  font-size: 8pt;
+  width: 100px;
+  margin-left: 10px;
+}
+
+#file-submenu{
+  margin-top: 10px;
+  background-color: rgb(237, 237, 237);
+  border-radius: 3px;
+}
+
+#new-tab-btn{
+  padding: 5px;
+  border-top: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-radius: 3px 3px 0px 0px;
+  cursor: pointer;
+}
+
+#close-tab-btn{
+   padding: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+      border-radius: 0px 0px 3px 3px;
+}
+
+#new-tab-btn:hover{
+     background-color: rgb(54, 148, 255);
+
+}
+#close-tab-btn:hover{
+     background-color: rgb(54, 148, 255);
+
+}
 .container {
   display: flex;
   height: calc(100vh - 60px);
@@ -17,6 +65,9 @@ h1 {
 }
 
 .left-panel, .right-panel {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
   flex: 1;
   padding: 15px;
   border: 1px solid #ccc;
@@ -27,8 +78,10 @@ h1 {
 
 #drop-area {
   margin-top: 20px;
-  width: 400px;
-  height: 200px;
+  max-width: 400px;
+  max-height: 200px;
+  min-width: 400px;
+  min-height: 200px;
   border: 3px dashed #bbb;
   border-radius: 12px;
   display: flex;
@@ -66,6 +119,7 @@ h1 {
 #file-content {
   white-space: pre-wrap;
   margin-bottom: 10px;
+  background-color: orange;
 }
 
 .search-row {
@@ -77,15 +131,21 @@ h1 {
 .search-row input {
   flex: 1;
 }
+#search-btn{
+    background-color: #007bff;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
 
 .chat-output {
   flex: 1;
   max-height: 60%;
   overflow-y: auto;
   margin-bottom: 20px;
-  background: #f5f5f5;
   padding: 10px;
   border-radius: 6px;
+    z-index: 10000;
 }
 
 .chat-controls {
@@ -95,32 +155,7 @@ h1 {
   gap: 10px;
 }
 
-#ai-input {
-  width: 80%;
-  padding: 10px;
-  font-size: 16px;
-  border-radius: 5px;
-  border: 1px solid #aaa;
-}
 
-.chat-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.chat-buttons button {
-  padding: 8px 16px;
-  font-size: 14px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.chat-buttons button:hover {
-  background-color: #0056b3;
-}
 
 .tab-bar {
   display: flex;
@@ -165,4 +200,24 @@ h1 {
   border-radius: 5px;
   background-color: #f9f9f9;
   margin-bottom: 10px;
+}
+
+.chat-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+#ai-input {
+  flex: 1;
+  padding: 5px;
+  z-index: 10000;
+}
+
+#ai-send {
+  background: none;
+  border: none;
+  cursor: pointer;
 }

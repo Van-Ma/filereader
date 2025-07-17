@@ -9,16 +9,29 @@
 </head>
 
 <body>
-  <h1>File Reader</h1>
+  <!-- Navigation bar -->
+  <div class="nav-bar">
+    <div id="file-menu">File</div>
+  </div>
+
+  <div id="file-submenu">
+    <div id="new-tab-btn" class="menu-item">New Tab</div>
+    <div id="close-tab-btn" class="menu-item">Close Tab</div>
+  </div>
 
   <div class="container">
     <!-- LEFT PANEL -->
     <div class="left-panel">
+      <div></div>
       <div id="tab-bar" class="tab-bar"></div>
-       <div id="drop-area">Drag & Drop your file here</div>
-            <div class="search-row">
+      <div id="drop-area">Drag & Drop your file here</div>
+      <div class="search-row">
         <input type="text" id="search-input" placeholder="Search text..." />
-        <button id="search-btn" disabled>Search</button>
+        <button id="search-btn" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-search" viewBox="0 0 16 16">
+            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+          </svg>
+        </button>
       </div>
       <div id="tab-container" class="tab-container"></div>
     </div>
@@ -29,10 +42,11 @@
 
       <div class="chat-controls">
         <input type="text" id="ai-input" placeholder="Ask AI anything..." />
-        <div class="chat-buttons">
-          <button id="summarize-btn">Summarize</button>
-          <button id="cite-btn">Cite</button>
-        </div>
+        <button id="ai-send" title="Send Message">
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#0056b3" class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
+            <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -43,31 +57,56 @@
     const tabContainer = document.getElementById('tab-container');
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.getElementById('search-btn');
+    const aiInput = document.getElementById('ai-input');
+    const sendButton = document.getElementById('ai-send');
+    const fileMenu = document.getElementById('file-menu');
+    const fileSubmenu = document.getElementById('file-submenu');
+    const chatOutput = document.getElementById('chat-output');
 
     let tabs = [];
     let currentTabId = null;
     window.rawText = '';
 
+    fileMenu.addEventListener('click', () => {
+      fileSubmenu.style.display = fileSubmenu.style.display === 'block' ? 'none' : 'block';
+    });
+
+    window.addEventListener('click', (e) => {
+      if (!fileMenu.contains(e.target) && !fileSubmenu.contains(e.target)) {
+        fileSubmenu.style.display = 'none';
+      }
+    });
+
+    document.getElementById('new-tab-btn').addEventListener('click', () => {
+      newTab();
+      fileSubmenu.style.display = 'none';
+    });
+
+    document.getElementById('close-tab-btn').addEventListener('click', () => {
+      if (currentTabId) closeTab(currentTabId);
+      fileSubmenu.style.display = 'none';
+    });
+
     function createTab(filePath, content) {
-      const id = Date.now().toString();
+      const tabId = Date.now().toString();
       const name = filePath.split(/[/\\]/).pop();
 
-      tabs.push({ id, name, content, filePath });
+      tabs.push({ tabId, name, content, filePath });
 
       const tabButton = document.createElement('div');
       tabButton.className = 'tab';
-      tabButton.dataset.tabId = id;
+      tabButton.dataset.tabId = tabId;
 
       const nameSpan = document.createElement('span');
       nameSpan.textContent = name;
-      nameSpan.onclick = () => switchTab(id);
+      nameSpan.onclick = () => switchTab(tabId);
 
       const closeBtn = document.createElement('button');
       closeBtn.textContent = '×';
       closeBtn.className = 'close-tab';
       closeBtn.onclick = (e) => {
         e.stopPropagation();
-        closeTab(id);
+        closeTab(tabId);
       };
 
       tabButton.appendChild(nameSpan);
@@ -76,47 +115,49 @@
 
       const contentDiv = document.createElement('pre');
       contentDiv.className = 'tab-content';
-      contentDiv.dataset.tabId = id;
+      contentDiv.dataset.tabId = tabId;
       contentDiv.textContent = content;
       contentDiv.style.display = 'none';
       tabContainer.appendChild(contentDiv);
 
-      switchTab(id);
+      switchTab(tabId);
+
+      console.log(`New chat session started with tabId: ${tabId}`);
     }
 
-    function switchTab(id) {
-      currentTabId = id;
+    function switchTab(tabId) {
+      currentTabId = tabId;
       tabs.forEach(tab => {
-        const tabEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
-        tabEl.style.display = tab.id === id ? 'block' : 'none';
+        const tabEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
+        tabEl.style.display = tab.tabId === tabId ? 'block' : 'none';
       });
 
       const tabButtons = tabBar.querySelectorAll('.tab');
       tabButtons.forEach(btn => btn.classList.remove('active'));
-      const activeBtn = tabBar.querySelector(`.tab[data-tab-id="${id}"]`);
+      const activeBtn = tabBar.querySelector(`.tab[data-tab-id="${tabId}"]`);
       if (activeBtn) activeBtn.classList.add('active');
 
-      const activeTab = tabs.find(t => t.id === id);
+      const activeTab = tabs.find(t => t.tabId === tabId);
       window.rawText = activeTab?.content || '';
       searchInput.value = '';
       searchBtn.disabled = true;
+
+      console.log(`Switched chat session to tabId: ${tabId}`);
     }
 
-    function closeTab(id) {
-      const index = tabs.findIndex(t => t.id === id);
+    function closeTab(tabId) {
+      const index = tabs.findIndex(t => t.tabId === tabId);
       if (index === -1) return;
 
-      // Remove tab and content
       tabs.splice(index, 1);
-      const tabEl = tabBar.querySelector(`.tab[data-tab-id="${id}"]`);
-      const contentEl = tabContainer.querySelector(`.tab-content[data-tab-id="${id}"]`);
+      const tabEl = tabBar.querySelector(`.tab[data-tab-id="${tabId}"]`);
+      const contentEl = tabContainer.querySelector(`.tab-content[data-tab-id="${tabId}"]`);
       if (tabEl) tabEl.remove();
       if (contentEl) contentEl.remove();
 
-      // Switch to another tab if this one was active
-      if (currentTabId === id) {
+      if (currentTabId === tabId) {
         if (tabs.length > 0) {
-          switchTab(tabs[Math.max(index - 1, 0)].id);
+          switchTab(tabs[Math.max(index - 1, 0)].tabId);
         } else {
           currentTabId = null;
           window.rawText = '';
@@ -125,6 +166,71 @@
         }
       }
     }
+
+    async function sendMessageToBot(sessionId, userInput, fileContent = null) {
+      try {
+        const payload = {
+          message: userInput,
+          sessionId,
+        };
+        if (fileContent) payload.fileContent = fileContent;
+
+        const response = await fetch('http://127.0.0.1:5000/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        const botMessage = data.response || '(No response)';
+        displayBotMessage(botMessage);
+      } catch (error) {
+        displayBotMessage(`❌ Error: ${error.message}`);
+      }
+    }
+
+    function sendPrompt() {
+
+      const prompt = aiInput.value.trim();
+      if (!prompt) return;
+
+      displayUserMessage(prompt);
+      displayBotMessage("🤖...");
+
+      aiInput.value = '';
+      const fileContent = window.rawText || null;
+      sendMessageToBot(currentTabId, prompt, fileContent);
+    }
+
+    function displayUserMessage(message) {
+      chatOutput.innerHTML += `
+        <div style="text-align: right;">
+          <p style="display: inline-block; background-color: #007bff; color: white; padding: 8px 12px; border-radius: 8px; max-width: 60%; margin: 5px 0;">
+            ${message}
+          </p>
+        </div>`;
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    function displayBotMessage(message) {
+      chatOutput.innerHTML += `
+        <div style="text-align: left;">
+          <p style="display: inline-block; background-color: #e0e0e0; color: black; padding: 8px 12px; border-radius: 8px; max-width: 60%; margin: 5px 0;">
+            ${message}
+          </p>
+        </div>`;
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    aiInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendPrompt();
+      }
+    });
+
+    sendButton.addEventListener('click', sendPrompt);
 
     function escapeRegExp(string) {
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -140,7 +246,7 @@
       const query = searchInput.value.trim();
       if (!query) return;
 
-      if (!window.rawText || !window.rawText.trim()) {
+      if (!window.rawText?.trim()) {
         const activeDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
         activeDiv.innerHTML = '<p style="color: red;">⚠ Please upload a file first.</p>';
         return;
@@ -150,6 +256,15 @@
       const contentDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
       contentDiv.innerHTML = highlighted;
     }
+
+    searchInput.addEventListener('input', () => {
+      searchBtn.disabled = !searchInput.value.trim();
+    });
+
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') performSearch();
+    });
 
     dropArea.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -183,12 +298,12 @@
               createTab(file.path, result);
             } else {
               if (currentTabId) {
-                const tab = tabs.find(t => t.id === currentTabId);
+                const tab = tabs.find(t => t.tabId === currentTabId);
                 tab.content = result;
                 tab.filePath = file.path;
-                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
+                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
                 contentEl.textContent = result;
-                switchTab(tab.id);
+                switchTab(tab.tabId);
               } else {
                 createTab(file.path, result);
               }
@@ -207,12 +322,12 @@
               createTab(filePath, result);
             } else {
               if (currentTabId) {
-                const tab = tabs.find(t => t.id === currentTabId);
+                const tab = tabs.find(t => t.tabId === currentTabId);
                 tab.content = result;
                 tab.filePath = filePath;
-                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.id}"]`);
+                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
                 contentEl.textContent = result;
-                switchTab(tab.id);
+                switchTab(tab.tabId);
               } else {
                 createTab(filePath, result);
               }
@@ -221,16 +336,6 @@
           .catch(() => alert('Error reading file.'));
       });
     }
-
-    searchInput.addEventListener('input', () => {
-      searchBtn.disabled = !searchInput.value.trim();
-    });
-
-    searchBtn.addEventListener('click', performSearch);
-
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') performSearch();
-    });
   </script>
 </body>
 </html>
