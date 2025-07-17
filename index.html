@@ -1,341 +1,451 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File Reader App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+  <title></title>
 </head>
 
 <body>
-  <!-- Navigation bar -->
-  <div class="nav-bar">
-    <div id="file-menu">File</div>
-  </div>
-
-  <div id="file-submenu">
-    <div id="new-tab-btn" class="menu-item">New Tab</div>
-    <div id="close-tab-btn" class="menu-item">Close Tab</div>
-  </div>
-
-  <div class="container">
-    <!-- LEFT PANEL -->
-    <div class="left-panel">
-      <div></div>
-      <div id="tab-bar" class="tab-bar"></div>
-      <div id="drop-area">Drag & Drop your file here</div>
-      <div class="search-row">
-        <input type="text" id="search-input" placeholder="Search text..." />
-        <button id="search-btn" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="white" class="bi bi-search" viewBox="0 0 16 16">
-            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
-          </svg>
-        </button>
-      </div>
-      <div id="tab-container" class="tab-container"></div>
+  <div class="page-layout">
+    <div class="file-container">
+      <div id="tab-bar"></div>
+      <div id="drop-area">Drag & Drop a text file here or click to upload</div>
+      <input type="file" id="file-input" accept=".txt,.md,.doc,.docx,.pdf,.rtf,.odt,.html,.htm" style="display:none" />
+      <div id="file-content">No file loaded yet.</div>
     </div>
 
-    <!-- RIGHT PANEL -->
-    <div class="right-panel">
-      <div id="chat-output" class="chat-output"></div>
+    <div class="chat-container">
+      <div class="model-container">
+        <select id="model-select">
+          <option value="LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct">
+            LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct</option>
+          <option value="HuggingFaceNoCache/meta-llama/Llama-3.1-8B-Instruct">
+            HuggingFaceNoCache/meta-llama/Llama-3.1-8B-Instruct</option>
+          <option value="LangChainKVCache/meta-llama/Llama-3.2-1B-Instruct">
+            LangChainKVCache/meta-llama/Llama-3.2-1B-Instruct</option>
+          <option value="HuggingFaceNoCache/meta-llama/Llama-3.2-1B-Instruct">
+            HuggingFaceNoCache/meta-llama/Llama-3.2-1B-Instruct</option>
+          <option value="LangChainKVCache/TinyLlama/TinyLlama-1.1B-Chat-v1.0">
+            LangChainKVCache/TinyLlama/TinyLlama-1.1B-Chat-v1.0</option>
+          <option value="HuggingFaceNoCache/TinyLlama/TinyLlama-1.1B-Chat-v1.0">
+            HuggingFaceNoCache/TinyLlama/TinyLlama-1.1B-Chat-v1.0</option>
+        </select>
+      </div>
 
-      <div class="chat-controls">
+      <h2 id="file-name-display">No file loaded</h2>
+
+      <div id="chat-output"></div>
+
+      <div id="chat-controls">
         <input type="text" id="ai-input" placeholder="Ask AI anything..." />
-        <button id="ai-send" title="Send Message">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#0056b3" class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
-            <path d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z"/>
+        <button id="ai-send" aria-label="Send">
+          <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#007bff"
+            class="bi bi-arrow-up-circle-fill" viewBox="0 0 16 16">
+            <path
+              d="M16 8A8 8 0 1 0 0 8a8 8 0 0 0 16 0m-7.5 3.5a.5.5 0 0 1-1 0V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707z" />
           </svg>
         </button>
+
       </div>
     </div>
   </div>
+
+
 
   <script>
     const dropArea = document.getElementById('drop-area');
-    const tabBar = document.getElementById('tab-bar');
-    const tabContainer = document.getElementById('tab-container');
-    const searchInput = document.getElementById('search-input');
-    const searchBtn = document.getElementById('search-btn');
+    const fileInput = document.getElementById('file-input');
+    const fileContentDiv = document.getElementById('file-content');
+    const chatOutput = document.getElementById('chat-output');
     const aiInput = document.getElementById('ai-input');
     const sendButton = document.getElementById('ai-send');
-    const fileMenu = document.getElementById('file-menu');
-    const fileSubmenu = document.getElementById('file-submenu');
-    const chatOutput = document.getElementById('chat-output');
+    const tabBar = document.getElementById('tab-bar');
+    const modelSelect = document.getElementById('model-select');
+
+    let previousModelValue = modelSelect.value; // track previous selection
+
+modelSelect.addEventListener('change', async () => {
+  if (!currentTabId) {
+    alert('No active tab. Please load a file first.');
+    modelSelect.value = previousModelValue;
+    return;
+  }
+
+  const tab = tabs.find(t => t.id === currentTabId);
+  if (!tab) return;
+
+  const newModelValue = modelSelect.value;
+
+  const confirmSwitch = confirm(
+    `Switch to model:\n"${newModelValue}"?\n\nThis will start a new chat and delete chat history.`
+  );
+
+  if (!confirmSwitch) {
+    modelSelect.value = previousModelValue;
+    return;
+  }
+
+  // 🧹 Delete old session from server
+  await deleteSessionOnServer(tab.sessionId);
+
+  // 🔁 Assign new sessionId
+  tab.sessionId = createSessionId();
+
+  // 🔄 Reset chat state
+  tab.chatHistory = [];
+  tab.modelSelected = false;
+  chatOutput.innerHTML = '';
+
+  // 🔧 Update tab's model
+  tab.model = newModelValue;
+
+  // 📡 Call backend to select new model
+  const success = await selectModelForSession(tab.sessionId);
+
+  if (success) {
+    tab.modelSelected = true;
+    previousModelValue = newModelValue;
+
+    // Optional: show confirmation
+    console.log(`✅ Switched to model: ${newModelValue}`);
+
+    // <== ADD THIS PART HERE
+    aiInput.disabled = false;  // make sure input is enabled
+    aiInput.focus();           // set focus so user can start typing immediately
+
+  } else {
+    modelSelect.value = previousModelValue;
+    alert('Failed to switch model. Reverting selection.');
+  }
+});
+
+
 
     let tabs = [];
     let currentTabId = null;
-    window.rawText = '';
 
-    fileMenu.addEventListener('click', () => {
-      fileSubmenu.style.display = fileSubmenu.style.display === 'block' ? 'none' : 'block';
-    });
+    async function handlePdf(file) {
+      const reader = new FileReader();
 
-    window.addEventListener('click', (e) => {
-      if (!fileMenu.contains(e.target) && !fileSubmenu.contains(e.target)) {
-        fileSubmenu.style.display = 'none';
-      }
-    });
+      reader.onload = async function (event) {
+        const typedArray = new Uint8Array(event.target.result);
 
-    document.getElementById('new-tab-btn').addEventListener('click', () => {
-      newTab();
-      fileSubmenu.style.display = 'none';
-    });
+        try {
+          const pdf = await pdfjsLib.getDocument(typedArray).promise;
+          let text = "";
 
-    document.getElementById('close-tab-btn').addEventListener('click', () => {
-      if (currentTabId) closeTab(currentTabId);
-      fileSubmenu.style.display = 'none';
-    });
+          for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const content = await page.getTextContent();
+            const strings = content.items.map(item => item.str);
+            text += strings.join(" ") + "\n\n";
+          }
 
-    function createTab(filePath, content) {
-      const tabId = Date.now().toString();
-      const name = filePath.split(/[/\\]/).pop();
-
-      tabs.push({ tabId, name, content, filePath });
-
-      const tabButton = document.createElement('div');
-      tabButton.className = 'tab';
-      tabButton.dataset.tabId = tabId;
-
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = name;
-      nameSpan.onclick = () => switchTab(tabId);
-
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = '×';
-      closeBtn.className = 'close-tab';
-      closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        closeTab(tabId);
+          createTab(file.name, text);
+        } catch (error) {
+          alert("Error reading PDF file: " + error);
+        }
       };
 
-      tabButton.appendChild(nameSpan);
-      tabButton.appendChild(closeBtn);
-      tabBar.appendChild(tabButton);
-
-      const contentDiv = document.createElement('pre');
-      contentDiv.className = 'tab-content';
-      contentDiv.dataset.tabId = tabId;
-      contentDiv.textContent = content;
-      contentDiv.style.display = 'none';
-      tabContainer.appendChild(contentDiv);
-
-      switchTab(tabId);
-
-      console.log(`New chat session started with tabId: ${tabId}`);
+      reader.readAsArrayBuffer(file);
     }
 
-    function switchTab(tabId) {
-      currentTabId = tabId;
-      tabs.forEach(tab => {
-        const tabEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
-        tabEl.style.display = tab.tabId === tabId ? 'block' : 'none';
-      });
-
-      const tabButtons = tabBar.querySelectorAll('.tab');
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      const activeBtn = tabBar.querySelector(`.tab[data-tab-id="${tabId}"]`);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      const activeTab = tabs.find(t => t.tabId === tabId);
-      window.rawText = activeTab?.content || '';
-      searchInput.value = '';
-      searchBtn.disabled = true;
-
-      console.log(`Switched chat session to tabId: ${tabId}`);
+    function handleDocx(file) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const arrayBuffer = event.target.result;
+        mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+          .then(result => {
+            createTab(file.name, result.value);
+          })
+          .catch(err => {
+            alert("Error reading DOCX file: " + err);
+          });
+      };
+      reader.readAsArrayBuffer(file);
     }
 
-    function closeTab(tabId) {
-      const index = tabs.findIndex(t => t.tabId === tabId);
-      if (index === -1) return;
+    function createSessionId() {
+      return new Date().toISOString().replace(/[-:.TZ]/g, '') + Math.floor(Math.random() * 1000);
+    }
 
-      tabs.splice(index, 1);
-      const tabEl = tabBar.querySelector(`.tab[data-tab-id="${tabId}"]`);
-      const contentEl = tabContainer.querySelector(`.tab-content[data-tab-id="${tabId}"]`);
-      if (tabEl) tabEl.remove();
-      if (contentEl) contentEl.remove();
+    // Call /select_model to set the model for the session (hardcoded to LangChainKVCache)
+    async function selectModelForSession(sessionId) {
+      try {
+        // Get the selected model value from the dropdown
+        const modelSelect = document.getElementById('model-select');
+        const selectedModel = modelSelect.value;
 
-      if (currentTabId === tabId) {
-        if (tabs.length > 0) {
-          switchTab(tabs[Math.max(index - 1, 0)].tabId);
-        } else {
-          currentTabId = null;
-          window.rawText = '';
-          searchInput.value = '';
-          searchBtn.disabled = true;
-        }
+        const response = await fetch('http://127.0.0.1:5000/select_model', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: sessionId,
+            modelType: 'LangChainKVCache/meta-llama/Llama-3.2-1B-Instruct' // use selected option's value here
+          })
+        });
+
+        if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
+        const data = await response.json();
+        console.log(`Model selected for session ${sessionId}:`, data);
+        return true;
+      } catch (err) {
+        alert(`Error selecting model for session: ${err.message}`);
+        return false;
       }
     }
 
-    async function sendMessageToBot(sessionId, userInput, fileContent = null) {
-      try {
-        const payload = {
-          message: userInput,
-          sessionId,
-        };
-        if (fileContent) payload.fileContent = fileContent;
+    // Create new tab and select model for session
+    async function createTab(fileName, fileText) {
+      const id = Date.now().toString();
+      const sessionId = createSessionId();
+     tabs.push({
+        id,
+        sessionId,
+        name: fileName,
+        content: fileText,
+        chatHistory: [],
+        modelSelected: false,
+        model: modelSelect.value // 👈 NEW!
+      });
 
+      renderTabs();
+      switchTab(id);
+
+      // Select model for this session
+      const success = await selectModelForSession(sessionId);
+      const tab = tabs.find(t => t.id === id);
+      if (tab) tab.modelSelected = success;
+    }
+
+    function handleFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (ext === 'docx') {
+        handleDocx(file);
+      } else if (ext === 'pdf') {
+        handlePdf(file);
+      } else if (['txt', 'md', 'doc', 'rtf', 'odt', 'html', 'htm'].includes(ext)) {
+        // treat as plain text or HTML
+        const reader = new FileReader();
+        reader.onload = e => {
+          createTab(file.name, e.target.result);
+        };
+        reader.readAsText(file);
+      } else {
+        alert('Unsupported file type!');
+      }
+    }
+
+    function renderTabs() {
+      tabBar.innerHTML = '';
+      tabs.forEach(tab => {
+        const tabEl = document.createElement('div');
+        tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
+        tabEl.textContent = tab.name;
+        tabEl.dataset.id = tab.id;
+
+        // Close button
+        const closeBtn = document.createElement('span');
+        closeBtn.textContent = '×';
+        closeBtn.className = 'close-btn';
+        closeBtn.onclick = e => {
+          e.stopPropagation();
+          closeTab(tab.id);
+        };
+        tabEl.appendChild(closeBtn);
+
+        tabEl.onclick = () => switchTab(tab.id);
+
+        tabBar.appendChild(tabEl);
+      });
+    }
+
+    // Switch tabs
+    function switchTab(id) {
+      currentTabId = id;
+      const tab = tabs.find(t => t.id === id);
+      if (!tab) return;
+
+      fileContentDiv.textContent = tab.content || 'File is empty.';
+
+      const fileNameDisplay = document.getElementById('file-name-display');
+      fileNameDisplay.textContent = tab.name;
+
+      renderChatHistory(tab.chatHistory);
+      aiInput.value = '';
+      renderTabs();
+    }
+
+    async function deleteSessionOnServer(sessionId) {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/delete_session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId })
+        });
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to delete session');
+        }
+        console.log(`Session ${sessionId} deleted on server.`);
+      } catch (error) {
+        console.warn(`Error deleting session ${sessionId}:`, error);
+      }
+    }
+
+    function closeTab(id) {
+      const idx = tabs.findIndex(t => t.id === id);
+      if (idx === -1) return;
+
+      // Call backend to delete session
+      deleteSessionOnServer(tabs[idx].sessionId);
+
+      tabs.splice(idx, 1);
+      if (currentTabId === id) {
+        if (tabs.length > 0) {
+          switchTab(tabs[Math.max(idx - 1, 0)].id);
+        } else {
+          currentTabId = null;
+          fileContentDiv.textContent = 'No file loaded yet.';
+          chatOutput.innerHTML = '';
+        }
+      }
+      renderTabs();
+    }
+
+    // Chat history rendering
+    function renderChatHistory(history) {
+      chatOutput.innerHTML = '';
+      history.forEach(({ message, isUser }) => {
+        appendMessageToChatOutput(message, isUser);
+      });
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    function appendMessageToChatOutput(message, isUser) {
+      const msgDiv = document.createElement('div');
+      msgDiv.style.textAlign = isUser ? 'right' : 'left';
+      msgDiv.style.margin = '6px 0';
+
+      const p = document.createElement('p');
+      p.textContent = message;
+      p.style.display = 'inline-block';
+      p.style.padding = '8px 12px';
+      p.style.borderRadius = '8px';
+      p.style.maxWidth = '70%';
+      p.style.backgroundColor = isUser ? '#007bff' : '#eee';
+      p.style.color = isUser ? 'white' : 'black';
+
+      msgDiv.appendChild(p);
+      chatOutput.appendChild(msgDiv);
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    function addMessageToCurrentChat(message, isUser) {
+      if (!currentTabId) return;
+      const tab = tabs.find(t => t.id === currentTabId);
+      if (!tab) return;
+      tab.chatHistory.push({ message, isUser });
+      appendMessageToChatOutput(message, isUser);
+    }
+    // Drag & drop handlers
+    dropArea.addEventListener('click', () => fileInput.click());
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
+    dropArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+    });
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (fileInput.files.length > 0) {
+        handleFile(fileInput.files[0]);
+      }
+    });
+
+    // Send message to backend AI
+    async function sendMessageToBot(userInput) {
+      if (!currentTabId) {
+        alert('Please upload a file first!');
+        return;
+      }
+      const tab = tabs.find(t => t.id === currentTabId);
+      if (!tab) {
+        alert('Invalid tab selected!');
+        return;
+      }
+      if (!tab.modelSelected) {
+        alert('Model not ready yet for this session. Please wait.');
+        return;
+      }
+      if (!tab.content.trim()) {
+        alert('File content is empty!');
+        return;
+      }
+
+      addMessageToCurrentChat(userInput, true);
+      addMessageToCurrentChat('🤖...', false);
+
+      try {
         const response = await fetch('http://127.0.0.1:5000/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            sessionId: tab.sessionId,
+            message: userInput,
+            fileContent: tab.content
+          })
         });
-
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
-        const botMessage = data.response || '(No response)';
-        displayBotMessage(botMessage);
-      } catch (error) {
-        displayBotMessage(`❌ Error: ${error.message}`);
+
+        // Replace last bot "thinking" message with actual response
+        tab.chatHistory.pop();
+        chatOutput.lastChild.remove();
+
+        addMessageToCurrentChat(data.response || '(No response)', false);
+      } catch (err) {
+        // Replace last bot "thinking" message with error
+        tab.chatHistory.pop();
+        chatOutput.lastChild.remove();
+
+        addMessageToCurrentChat(`❌ Error: ${err.message}`, false);
       }
     }
 
+    // Send prompt
     function sendPrompt() {
-
       const prompt = aiInput.value.trim();
       if (!prompt) return;
-
-      displayUserMessage(prompt);
-      displayBotMessage("🤖...");
-
       aiInput.value = '';
-      const fileContent = window.rawText || null;
-      sendMessageToBot(currentTabId, prompt, fileContent);
+      sendMessageToBot(prompt);
     }
 
-    function displayUserMessage(message) {
-      chatOutput.innerHTML += `
-        <div style="text-align: right;">
-          <p style="display: inline-block; background-color: #007bff; color: white; padding: 8px 12px; border-radius: 8px; max-width: 60%; margin: 5px 0;">
-            ${message}
-          </p>
-        </div>`;
-      chatOutput.scrollTop = chatOutput.scrollHeight;
-    }
-
-    function displayBotMessage(message) {
-      chatOutput.innerHTML += `
-        <div style="text-align: left;">
-          <p style="display: inline-block; background-color: #e0e0e0; color: black; padding: 8px 12px; border-radius: 8px; max-width: 60%; margin: 5px 0;">
-            ${message}
-          </p>
-        </div>`;
-      chatOutput.scrollTop = chatOutput.scrollHeight;
-    }
-
-    aiInput.addEventListener('keydown', (e) => {
+    sendButton.addEventListener('click', sendPrompt);
+    aiInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
         e.preventDefault();
         sendPrompt();
       }
     });
 
-    sendButton.addEventListener('click', sendPrompt);
-
-    function escapeRegExp(string) {
-      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    }
-
-    function highlightText(text, query) {
-      if (!query) return text;
-      const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
-      return text.replace(regex, '<mark>$1</mark>');
-    }
-
-    function performSearch() {
-      const query = searchInput.value.trim();
-      if (!query) return;
-
-      if (!window.rawText?.trim()) {
-        const activeDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
-        activeDiv.innerHTML = '<p style="color: red;">⚠ Please upload a file first.</p>';
-        return;
-      }
-
-      const highlighted = highlightText(window.rawText, query);
-      const contentDiv = document.querySelector(`.tab-content[data-tab-id="${currentTabId}"]`);
-      contentDiv.innerHTML = highlighted;
-    }
-
-    searchInput.addEventListener('input', () => {
-      searchBtn.disabled = !searchInput.value.trim();
-    });
-
-    searchBtn.addEventListener('click', performSearch);
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') performSearch();
-    });
-
-    dropArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropArea.classList.add('dragover');
-    });
-
-    dropArea.addEventListener('dragleave', () => {
-      dropArea.classList.remove('dragover');
-    });
-
-    dropArea.addEventListener('drop', (event) => {
-      event.preventDefault();
-      dropArea.classList.remove('dragover');
-
-      const files = event.dataTransfer.files;
-      if (files.length === 0) return;
-
-      const file = files[0];
-      const ext = file.name.split('.').pop().toLowerCase();
-      const allowed = ['txt', 'pdf', 'docx', 'md'];
-      if (!allowed.includes(ext)) {
-        alert('Unsupported file type!');
-        return;
-      }
-
-      if (window.electronAPI?.parseFile) {
-        window.electronAPI.parseFile(file.path)
-          .then(result => {
-            const userChoice = confirm('Open in a new tab? (Cancel = Replace current tab)');
-            if (userChoice) {
-              createTab(file.path, result);
-            } else {
-              if (currentTabId) {
-                const tab = tabs.find(t => t.tabId === currentTabId);
-                tab.content = result;
-                tab.filePath = file.path;
-                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
-                contentEl.textContent = result;
-                switchTab(tab.tabId);
-              } else {
-                createTab(file.path, result);
-              }
-            }
-          })
-          .catch(() => alert('Error reading file.'));
-      }
-    });
-
-    if (window.electronAPI?.onFileOpened) {
-      window.electronAPI.onFileOpened((filePath) => {
-        window.electronAPI.parseFile(filePath)
-          .then(result => {
-            const userChoice = confirm('Open in a new tab? (Cancel = Replace current tab)');
-            if (userChoice) {
-              createTab(filePath, result);
-            } else {
-              if (currentTabId) {
-                const tab = tabs.find(t => t.tabId === currentTabId);
-                tab.content = result;
-                tab.filePath = filePath;
-                const contentEl = document.querySelector(`.tab-content[data-tab-id="${tab.tabId}"]`);
-                contentEl.textContent = result;
-                switchTab(tab.tabId);
-              } else {
-                createTab(filePath, result);
-              }
-            }
-          })
-          .catch(() => alert('Error reading file.'));
-      });
-    }
   </script>
 </body>
+
 </html>

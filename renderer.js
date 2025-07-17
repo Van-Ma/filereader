@@ -1,11 +1,16 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const promptInput = document.getElementById("prompt-input");
+const askBtn = document.getElementById("ask-btn");
+const aiOutput = document.getElementById("ai-output");
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  openFileDialog: () => ipcRenderer.send('request-open-file-dialog'),
-  newTab: () => ipcRenderer.send('request-new-tab'),
-  closeTab: () => ipcRenderer.send('request-close-tab'),
-  onFileContent: (callback) => ipcRenderer.on('open-file-content', (event, data) => callback(data)),
-  onFileError: (callback) => ipcRenderer.on('open-file-error', (event, message) => callback(message)),
-  onNewTab: (callback) => ipcRenderer.on('new-tab', callback),
-  onCloseTab: (callback) => ipcRenderer.on('close-tab', callback),
+askBtn.addEventListener("click", () => {
+  const prompt = promptInput.value.trim();
+  if (!prompt) return;
+
+  aiOutput.textContent = "Thinking...";
+
+  window.electronAPI.askLLM(prompt).then(response => {
+    aiOutput.textContent = response;
+  }).catch(err => {
+    aiOutput.textContent = "Error: " + err.message;
+  });
 });

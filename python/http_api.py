@@ -1,13 +1,13 @@
 # http_api.py
-# This file creates a Flask web server to provide an API endpoint
-# for the chatbot. It now delegates all logic to a ChatManager instance.
+# This file creates a Flask web server and acts as a thin interface
+# to a central ChatManager that handles all session logic.
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
 
-# --- UPDATED: Import the ChatManager and a single load function ---
-from chat_manager import ChatManager, load_model_globally
+# Import the ChatManager class
+from chat_manager import ChatManager
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -16,37 +16,36 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 app = Flask(__name__)
 CORS(app)
 
-# --- ADDED: A dictionary to hold a manager for each session ---
-session_managers: dict[str, ChatManager] = {}
+# This instance will manage all user sessions internally.
+chat_manager = ChatManager()
 
 @app.route('/select_model', methods=['POST'])
 def select_model():
-    """
-    Selects which model implementation (LangChain or Hugging Face)
-    to use for a given session.
-    """
+    """Selects and instantiates a model for a given session via the ChatManager."""
     data = request.json
     session_id = data.get('sessionId')
-    model_type = data.get('modelType') # 'langchain' or 'huggingface'
+    model_type_string = data.get('modelType')
 
-    if not session_id or not model_type:
+    print("Received this model string from js: ")
+    print(model_type_string)
+    print("^ Check that matches the strings in chat_manager.py")
+
+    if not session_id or not model_type_string:
         return jsonify({'error': 'Request must include "sessionId" and "modelType".'}), 400
     
-    if model_type not in ['langchain', 'huggingface']:
-        return jsonify({'error': 'modelType must be "langchain" or "huggingface".'}), 400
-
-    # Create a new ChatManager for this session with the selected type
-    session_managers[session_id] = ChatManager(model_type=model_type)
-    logging.info(f"Session {session_id} set to use '{model_type}' implementation.")
-    
-    return jsonify({"status": "success", "message": f"Session {session_id} is now using the {model_type} model."})
+    try:
+        message = chat_manager.create_session(session_id, model_type_string)
+        return jsonify({"status": "success", "message": message})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logging.error(f"Failed to create session {session_id}: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to create session: {e}'}), 500
 
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """
-    Handles chat requests by routing them to the appropriate session manager.
-    """
+    """Handles chat requests by routing them to the ChatManager."""
     try:
         data = request.json
         if not data or 'message' not in data or 'sessionId' not in data:
@@ -56,26 +55,32 @@ def chat():
         session_id = data.get('sessionId')
         file_content = data.get('fileContent', None)
 
-        # Get the manager for this session, or create a default one if none exists.
-        manager = session_managers.get(session_id)
-        if not manager:
-            logging.warning(f"No model selected for session {session_id}. Defaulting to 'langchain'.")
-            manager = ChatManager(model_type='langchain')
-            session_managers[session_id] = manager
-        
-        # Invoke the chat method on the session's manager instance
-        bot_response = manager.invoke(user_input, session_id, file_content)
-
+        bot_response = chat_manager.invoke(session_id, user_input, file_content)
         return jsonify({'response': bot_response})
 
+    except ValueError as e: # Catches session not found errors
+        return jsonify({'error': str(e)}), 404
     except Exception as e:
         logging.error(f"An error occurred in the /chat endpoint: {e}", exc_info=True)
         return jsonify({'error': 'An internal server error occurred.'}), 500
 
-if __name__ == '__main__':
-    # Load the model once at startup
-    load_model_globally()
+
+@app.route('/delete_session', methods=['POST'])
+def delete_session():
+    """Deletes a session manager via the ChatManager."""
+    data = request.json
+    session_id = data.get('sessionId')
+
+    if not session_id:
+        return jsonify({'error': 'Request must include a "sessionId".'}), 400
     
+    success, message = chat_manager.delete_session(session_id)
+    if success:
+        return jsonify({"status": "success", "message": message})
+    else:
+        return jsonify({'error': message}), 404
+
+if __name__ == '__main__':
     logging.info("\nFlask server is starting...")
-    logging.info("API endpoint available at http://127.0.0.1:5000/chat")
+    logging.info("Ready to manage sessions via API endpoints.")
     app.run(host='0.0.0.0', port=5000, debug=False)
