@@ -18,7 +18,7 @@
 
 This project requires Python 3.9+ and Node.js/npm.
 
-- **Frontend:** ___Fill in frontend requirements (e.g., React, Vue)___
+- **Frontend:** `Node.js`
 - **Backend:** `flask`, `torch`, `transformers`, `langchain`, and other packages listed in `python/requirements.txt`.
 
 ---
@@ -26,8 +26,8 @@ This project requires Python 3.9+ and Node.js/npm.
 ### 2. Setup & Installation
 
 **A. Frontend Dependencies**
-
-___(Fill in the command to install frontend dependencies, e.g., `npm install`)___
+Navigate to the project's root directory and run:
+npm install
 
 **B. Backend Dependencies**
 
@@ -49,7 +49,7 @@ huggingface-cli login
 
 **A. Frontend**
 
-___(Fill in the command to start the frontend development server here, e.g., `npm run dev`)___
+npm start or npm electron .
 
 **B. Backend**
 
