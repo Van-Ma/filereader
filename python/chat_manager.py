@@ -43,9 +43,16 @@ class ChatManager:
         print("1.4")
 
         if implementation_type == 'LangChainKVCache':
+            print("1.4.5")
             self.session_models[session_id] = HuggingFaceLLMKVCache(model_name=model_name)
+            print("1.4.6")
+
         else: # 'HuggingFaceNoCache'
+            print("1.4.7")
+            
             self.session_models[session_id] = HuggingFaceNoCache(model_name=model_name)
+            print("1.4.8")
+
         print("1.5")
         
         message = f"A dedicated {implementation_type} model ({model_name}) is now running for session {session_id}."

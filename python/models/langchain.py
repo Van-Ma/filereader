@@ -9,42 +9,36 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class HuggingFaceLLMKVCache(LLM):
     """A self-contained, stateful LangChain LLM that uses a KV cache."""
-    model: AutoModelForCausalLM
-    tokenizer: AutoTokenizer
+    # --- CORRECTED: Use 'Any' to bypass strict Pydantic type validation ---
+    model: Any
+    tokenizer: Any
     model_name: str
     past_key_values: Optional[torch.Tensor] = None
     is_first_turn: bool = True
 
-    class Config:
-        arbitrary_types_allowed = True
+    # The Config class is no longer needed with the 'Any' type hint.
 
     def __init__(self, model_name: str, **kwargs):
         """Initializes and loads a dedicated model instance."""
-        # --- CORRECTED: Removed premature assignment of self.model_name ---
-        print("init1")
+        # Step 1: Load all necessary components into local variables first.
         loadable_model_name = model_name
         if model_name == "meta-llama/Llama-3.2-1B-Instruct":
             loadable_model_name = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
             logging.info(f"Mapping '{model_name}' to '{loadable_model_name}' for loading.")
-        print("init2")
 
         try:
             logging.info(f"Loading model '{loadable_model_name}' for new LangChainKVCache instance...")
-            print("init3")
             
             device = "cuda" if torch.cuda.is_available() else "cpu"
             if device == "cuda":
                 logging.info("GPU detected. Explicitly placing model on GPU.")
             else:
                 logging.warning("No GPU detected. Model will be loaded on CPU.")
-            print("init4")
 
             loaded_tokenizer = AutoTokenizer.from_pretrained(loadable_model_name)
-            # Load model, move it to the specified device.
             loaded_model = AutoModelForCausalLM.from_pretrained(
                 loadable_model_name, torch_dtype=torch.bfloat16
             ).to(device)
-            print("init5")
 
             if loaded_tokenizer.pad_token is None:
                 loaded_tokenizer.pad_token = loaded_tokenizer.eos_token
@@ -52,8 +46,8 @@ class HuggingFaceLLMKVCache(LLM):
         except Exception as e:
             logging.error(f"Failed to load model in HuggingFaceLLMKVCache: {e}")
             raise
-            print("init6")
-
+        
+        # Step 2: Call super().__init__() ONCE with all the data.
         super().__init__(model=loaded_model, tokenizer=loaded_tokenizer, model_name=model_name, **kwargs)
 
     @property
@@ -63,19 +57,29 @@ class HuggingFaceLLMKVCache(LLM):
 
     def _call(self, prompt: str, **kwargs: Any) -> str:
         """The internal method LangChain calls to generate text."""
-        input_ids = self.tokenizer(prompt, return_tensors="pt").input_ids.to(self.model.device)
+        # --- CORRECTED: Tokenize to get both input_ids and attention_mask ---
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
         
         if self.model_name == "meta-llama/Llama-3.1-8B-Instruct":
-            terminators = [self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+            terminators = [self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|e_t_id|>")]
         else: # For TinyLlama and Llama-3.2-1B
             terminators = [self.tokenizer.eos_token_id]
 
+        # --- CORRECTED: Pass both input_ids and attention_mask via **inputs ---
         outputs = self.model.generate(
-            input_ids, max_new_tokens=256, eos_token_id=terminators,
-            do_sample=True, temperature=0.6, top_p=0.9, use_cache=True,
-            past_key_values=self.past_key_values
+            **inputs, # This unpacks the dictionary into input_ids=... and attention_mask=...
+            max_new_tokens=256, 
+            eos_token_id=terminators,
+            do_sample=True, 
+            temperature=0.6, 
+            top_p=0.9, 
+            use_cache=True,
+            past_key_values=self.past_key_values,
+            return_dict_in_generate=True
         )
-        response_ids = outputs.sequences[:, input_ids.shape[-1]:]
+        
+        # --- CORRECTED: Slice based on the shape of the tokenized inputs ---
+        response_ids = outputs.sequences[:, inputs.input_ids.shape[-1]:]
         response_text = self.tokenizer.decode(response_ids[0], skip_special_tokens=True)
         self.past_key_values = outputs.past_key_values
         return response_text
