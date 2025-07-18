@@ -27,8 +27,9 @@ This project requires Python 3.9+ and Node.js/npm.
 
 **A. Frontend Dependencies**
 Navigate to the project's root directory and run:
+```bash
 npm install
-
+```
 **B. Backend Dependencies**
 
 Navigate to the project's root directory and run:
@@ -48,9 +49,9 @@ huggingface-cli login
 ### 3. Running the Application
 
 **A. Frontend**
-
+```bash
 npm start or npm electron .
-
+```
 **B. Backend**
 
 Start the Flask server from the project's **root directory**:
