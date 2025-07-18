@@ -11,6 +11,15 @@
 </head>
 
 <body>
+   <div class="nav-bar">
+    <div id="file-menu">File</div>
+  </div>
+
+  <div id="file-submenu">
+    <div id="new-tab-btn" class="menu-item">Open File</div>
+    <div id="close-tab-btn" class="menu-item">Exit</div>
+  </div>
+
   <div class="page-layout">
     <div class="file-container">
       <div id="tab-bar"></div>
@@ -67,7 +76,7 @@
     const tabBar = document.getElementById('tab-bar');
     const modelSelect = document.getElementById('model-select');
 
-    let previousModelValue = modelSelect.value; // track previous selection
+    let previousModelValue = modelSelect.value; 
 
 modelSelect.addEventListener('change', async () => {
   if (!currentTabId) {
@@ -186,7 +195,7 @@ modelSelect.addEventListener('change', async () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId: sessionId,
-            modelType: 'LangChainKVCache/meta-llama/Llama-3.2-1B-Instruct' // use selected option's value here
+            modelType: selectedModel // use selected option's value here
           })
         });
 
