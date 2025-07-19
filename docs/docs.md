@@ -69,11 +69,10 @@ The backend exposes the following endpoints:
 #### `/select_model`
 
 - **Method:** `POST`
-- **Description:** Initializes a dedicated model instance for a user session. This must be called before `/chat` can be used for that session.
+- **Description:** Selects and initializes the global model instance. This must be called before `/chat` can be used.
 - **Body (JSON):**
     ```json
     {
-      "sessionId": "some-unique-user-id",
       "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
     }
     ```
@@ -82,7 +81,7 @@ The backend exposes the following endpoints:
 #### `/chat`
 
 - **Method:** `POST`
-- **Description:** Sends a message to the selected model for an active session.
+- **Description:** Sends a message to the selected global model for an active session. The session ID is used to manage conversation context.
 - **Body (JSON):**
     ```json
     {

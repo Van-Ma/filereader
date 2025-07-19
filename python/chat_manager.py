@@ -5,6 +5,11 @@
 import logging
 from models.langchain import HuggingFaceLLMKVCache
 from models.huggingface import HuggingFaceNoCache
+from models.model_context import ModelContext
+
+# Global model instance
+global_model_instance = None
+global_model_type = None
 
 # Central definition of allowed model configurations
 MODEL_TYPES = [
@@ -22,12 +27,15 @@ class ChatManager:
 
     def __init__(self):
         """Initializes the session manager."""
-        self.session_models: dict[str, any] = {}
+        self.session_models: dict[str, ModelContext] = {}
         logging.info("ChatManager initialized and ready to manage sessions.")
 
     def create_session(self, session_id: str, model_type_string: str) -> str:
         print("1.1")
         """Creates and stores a new model instance for a given session ID."""
+        global global_model_instance
+        global global_model_type
+
         if model_type_string not in MODEL_TYPES:
             raise ValueError(f"Invalid modelType. Must be one of: {MODEL_TYPES}")
         print("1.2")
@@ -38,20 +46,32 @@ class ChatManager:
             raise ValueError("Invalid modelType format. Expected 'ImplementationType/ModelName'.")
         print("1.3")
 
-        logging.info(f"Creating a '{implementation_type}' model for session {session_id} using '{model_name}'.")
-        logging.warning("This is a slow, memory-intensive operation.")
-        print("1.4")
+        if global_model_instance is None or global_model_type != model_type_string:
+            logging.info(f"Creating a global '{implementation_type}' model using '{model_name}'.")
+            logging.warning("This is a slow, memory-intensive operation.")
+            print("1.4")
 
+            if implementation_type == 'LangChainKVCache':
+                print("1.4.5")
+                global_model_instance = HuggingFaceLLMKVCache(model_name=model_name)
+                global_model_type = model_type_string
+                print("1.4.6")
+
+            else: # 'HuggingFaceNoCache'
+                print("1.4.7")
+                global_model_instance = HuggingFaceNoCache(model_name=model_name)
+                global_model_type = model_type_string
+                print("1.4.8")
+        else:
+            logging.info(f"Using existing global model instance for '{model_type_string}'.")
+
+        # Create context for the session
         if implementation_type == 'LangChainKVCache':
-            print("1.4.5")
-            self.session_models[session_id] = HuggingFaceLLMKVCache(model_name=model_name)
-            print("1.4.6")
-
+            from models.langchain import LangchainContext
+            self.session_models[session_id] = LangchainContext()
         else: # 'HuggingFaceNoCache'
-            print("1.4.7")
-            
-            self.session_models[session_id] = HuggingFaceNoCache(model_name=model_name)
-            print("1.4.8")
+            from models.huggingface import HuggingFaceContext
+            self.session_models[session_id] = HuggingFaceContext()
 
         print("1.5")
         
@@ -62,11 +82,14 @@ class ChatManager:
 
     def invoke(self, session_id: str, user_input: str, file_content: str = None) -> str:
         """Finds the correct model instance for the session and invokes it."""
-        model_instance = self.session_models.get(session_id)
-        if not model_instance:
+        model_context = self.session_models.get(session_id)
+        if not model_context:
             raise ValueError(f"Session {session_id} not found. Please call /select_model first.")
         
-        return model_instance.invoke(user_input, file_content)
+        if global_model_instance is None:
+            raise ValueError("No global model instance found. Please call /select_model first.")
+
+        return global_model_instance.invoke(model_context, user_input, file_content)
 
     def delete_session(self, session_id: str) -> tuple[bool, str]:
         """Deletes a session and its model from memory."""

@@ -23,23 +23,25 @@ chat_manager = ChatManager()
 def select_model():
     """Selects and instantiates a model for a given session via the ChatManager."""
     data = request.json
-    session_id = data.get('sessionId')
     model_type_string = data.get('modelType')
     print("received model name: ", model_type_string)
 
-    if not session_id or not model_type_string:
-        return jsonify({'error': 'Request must include "sessionId" and "modelType".'}), 400
+    if not model_type_string:
+        return jsonify({'error': 'Request must include "modelType".'}), 400
     
     try:
         print("1")
-        message = chat_manager.create_session(session_id, model_type_string)
+        # Use a dummy session ID or infer it if necessary within chat_manager, 
+        # as create_session still needs it for context creation.
+        # For global model selection, the session_id is mainly for context management.
+        message = chat_manager.create_session(request.remote_addr, model_type_string) # Using remote_addr as a dummy session ID
         print("2")
         return jsonify({"status": "success", "message": message})
     except ValueError as e:
         print("why is this running ", str(e))
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        logging.error(f"Failed to create session {session_id}: {e}", exc_info=True)
+        logging.error(f"Failed to create session {request.remote_addr}: {e}", exc_info=True)
         return jsonify({'error': f'Failed to create session: {e}'}), 500
 
 
@@ -74,6 +76,7 @@ def delete_session():
     if not session_id:
         return jsonify({'error': 'Request must include a "sessionId".'}), 400
     
+    # For global model, deletion still needs sessionId to delete the context
     success, message = chat_manager.delete_session(session_id)
     if success:
         return jsonify({"status": "success", "message": message})

@@ -6,16 +6,33 @@ from typing import Any, Optional, List, Dict
 import torch
 from langchain_core.language_models.llms import LLM
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from models.model_context import ModelContext # Import ModelContext
+
+class LangchainContext(ModelContext):
+    """Context for HuggingFaceLLMKVCache model, holding session-specific history and KV cache."""
+    def __init__(self):
+        super().__init__()
+        self.history: List[Dict[str, str]] = []
+        self.past_key_values: Optional[torch.Tensor] = None
+
+    def get_history(self):
+        return self.history
+
+    def add_message(self, role: str, content: str):
+        self.history.append({"role": role, "content": content})
+
+    def get_past_key_values(self):
+        return self.past_key_values
+
+    def set_past_key_values(self, past_key_values: torch.Tensor):
+        self.past_key_values = past_key_values
 
 class HuggingFaceLLMKVCache(LLM):
     """A self-contained, stateful LangChain LLM that uses a KV cache."""
     model: Any
     tokenizer: Any
     model_name: str
-    past_key_values: Optional[torch.Tensor] = None
-    
-    # Use a simple text history to manage state robustly
-    history: List[Dict[str, str]]
+    # Removed past_key_values and history
 
     def __init__(self, model_name: str, **kwargs):
         """Initializes and loads a dedicated model instance."""
@@ -45,7 +62,7 @@ class HuggingFaceLLMKVCache(LLM):
             logging.error(f"Failed to load model in HuggingFaceLLMKVCache: {e}")
             raise
         
-        super().__init__(model=loaded_model, tokenizer=loaded_tokenizer, model_name=model_name, history=[], **kwargs)
+        super().__init__(model=loaded_model, tokenizer=loaded_tokenizer, model_name=model_name, **kwargs)
 
     @property
     def _llm_type(self) -> str:
@@ -55,25 +72,26 @@ class HuggingFaceLLMKVCache(LLM):
     def _call(self, prompt: str, **kwargs: Any) -> str:
         """A required method for the LLM base class, delegating to invoke."""
         # This is a fallback; the main logic is in invoke.
-        return self.invoke(prompt)
+        # This will need to be updated to handle context if _call is ever used directly
+        raise NotImplementedError("The _call method is not directly supported; use invoke with context.")
     
-    def invoke(self, user_input: str, file_content: str = None) -> str:
+    def invoke(self, context: LangchainContext, user_input: str, file_content: str = None) -> str:
         """The public-facing method that correctly handles stateful conversation turns."""
         
         # On the first turn, initialize history with the system prompt.
-        if not self.history:
+        if not context.get_history():
             system_prompt = "You are a helpful and friendly chatbot."
             if file_content:
                 system_prompt = f"Answer questions based on this document:\n{file_content}"
-            self.history.append({"role": "system", "content": system_prompt})
+            context.add_message("system", system_prompt)
         
         # Add the new user message to our internal history
-        self.history.append({"role": "user", "content": user_input.strip()})
+        context.add_message("user", user_input.strip())
 
         # --- CORRECTED: Robust state and prompt management ---
         # 1. Use apply_chat_template to get the correctly formatted prompt string.
         prompt_string = self.tokenizer.apply_chat_template(
-            self.history, add_generation_prompt=True, tokenize=False
+            context.get_history(), add_generation_prompt=True, tokenize=False
         )
 
         # 2. Tokenize the full string to get a dictionary with both input_ids and attention_mask.
@@ -94,7 +112,7 @@ class HuggingFaceLLMKVCache(LLM):
             temperature=0.6, 
             top_p=0.9, 
             use_cache=True,
-            past_key_values=self.past_key_values,
+            past_key_values=context.get_past_key_values(),
             return_dict_in_generate=True
         )
         
@@ -102,7 +120,7 @@ class HuggingFaceLLMKVCache(LLM):
         response_text = self.tokenizer.decode(outputs.sequences[0, inputs['input_ids'].shape[-1]:], skip_special_tokens=True)
         
         # 5. Update the cache and history for the next turn
-        self.past_key_values = outputs.past_key_values
-        self.history.append({"role": "assistant", "content": response_text})
+        context.set_past_key_values(outputs.past_key_values)
+        context.add_message("assistant", response_text)
 
         return response_text

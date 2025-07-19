@@ -114,7 +114,7 @@ modelSelect.addEventListener('change', async () => {
   tab.model = newModelValue;
 
   // 📡 Call backend to select new model
-  const success = await selectModelForSession(tab.sessionId);
+  const success = await selectModelForSession();
 
   if (success) {
     tab.modelSelected = true;
@@ -184,29 +184,28 @@ modelSelect.addEventListener('change', async () => {
     }
 
     // Call /select_model to set the model for the session (hardcoded to LangChainKVCache)
-    async function selectModelForSession(sessionId) {
-      try {
-        // Get the selected model value from the dropdown
-        const modelSelect = document.getElementById('model-select');
-        const selectedModel = modelSelect.value;
+    async function selectModelForSession() {
+        try {
+            // Get the selected model value from the dropdown
+            const modelSelect = document.getElementById('model-select');
+            const selectedModel = modelSelect.value;
 
-        const response = await fetch('http://127.0.0.1:5000/select_model', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: sessionId,
-            modelType: selectedModel // use selected option's value here
-          })
-        });
+            const response = await fetch('http://127.0.0.1:5000/select_model', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    modelType: selectedModel // use selected option's value here
+                })
+            });
 
-        if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
-        const data = await response.json();
-        console.log(`Model selected for session ${sessionId}:`, data);
-        return true;
-      } catch (err) {
-        alert(`Error selecting model for session: ${err.message}`);
-        return false;
-      }
+            if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
+            const data = await response.json();
+            console.log(`Model selected for session:`, data);
+            return true;
+        } catch (err) {
+            console.error('Error selecting model:', err);
+            return false;
+        }
     }
 
     // Create new tab and select model for session
@@ -226,10 +225,8 @@ modelSelect.addEventListener('change', async () => {
       renderTabs();
       switchTab(id);
 
-      // Select model for this session
-      const success = await selectModelForSession(sessionId);
-      const tab = tabs.find(t => t.id === id);
-      if (tab) tab.modelSelected = success;
+      // No need to select model for new session, as it's global
+      // The model context will be created on the first chat message
     }
 
     function handleFile(file) {

@@ -62,7 +62,40 @@ The server will start on `http://127.0.0.1:5000`.
 
 ---
 
-### 4. Project Documentation
+### 4. API Endpoints
+
+#### `/select_model` (POST)
+Selects and initializes the global model instance. **This must be called before `/chat`.**
+- **Body (JSON):**
+  ```json
+  {
+    "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
+  }
+  ```
+
+#### `/chat` (POST)
+Sends a message to the selected global model for a session. The session ID is used to manage conversation context.
+- **Body (JSON):**
+  ```json
+  {
+    "sessionId": "some-unique-user-id",
+    "message": "Hello, what is your name?",
+    "fileContent": "Optional: The full text of a document."
+  }
+  ```
+
+#### `/delete_session` (POST)
+Deletes a session and releases its context from memory.
+- **Body (JSON):**
+  ```json
+  {
+    "sessionId": "some-unique-user-id"
+  }
+  ```
+
+---
+
+### 5. Project Documentation
 
 For detailed documentation on the frontend, backend, and API, please see the `docs.md` file inside the `docs/` folder.
 
