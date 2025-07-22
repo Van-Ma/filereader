@@ -7,20 +7,63 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
   <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
-  <title></title>
+  <title>File Reader</title>
 </head>
 
 <body>
-   <div class="nav-bar">
-    <div id="file-menu">File</div>
+  <div class="nav-bar">
+    <div id="file-menu">
+      <img id="logoimg" src="images/logo.png">
+      <button id="file-btn">File</button>
+      <button id="chat-btn">Edit</button>
+      <button id="file-btn">Help</button>
+    </div>
   </div>
 
   <div id="file-submenu">
-    <div id="new-tab-btn" class="menu-item">Open File</div>
-    <div id="close-tab-btn" class="menu-item">Exit</div>
+    <div id="new-tab-btn" class="menu-item">Open New File</div>
+    <div id="new-tab-btn" class="menu-item">Open Folder</div>
+    <div id="exit-tab-btn" class="menu-item">Exit</div>
+  </div>
+
+  <div id="chat-submenu">
+    <div id="chat-tab-history" class="menu-item">View Chat History</div>
+    <div id="chat-tab-history" class="menu-item">Save Chat</div>
+    <div id="chat-tab-history" class="menu-item">Manage Context</div>
+    <div id="chat-tab-history" class="menu-item">Clear Chat</div>
+  </div>
+
+
+  <div class="workbench-container">
+    <div class="icon-tooltip">
+      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff"
+        class="bi bi-archive" viewBox="0 0 16 16">
+        <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+</svg>
+      <span class="tooltip-text">Manage Context</span>
+    </div>
+
+    <div class="icon-tooltip">
+      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff"
+        class="bi bi-clock" viewBox="0 0 16 16">
+          <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/>
+  <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+  <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+</svg>
+      <span class="tooltip-text">View Chat History</span>
+    </div>
+
+    <div class="icon-tooltip">
+      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-floppy" viewBox="0 0 16 16">
+  <path d="M11 2H9v3h2z"/>
+  <path d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z"/>
+</svg>
+      <span class="tooltip-text">Save Chat</span>
+    </div>
   </div>
 
   <div class="page-layout">
+
     <div class="file-container">
       <div id="tab-bar"></div>
       <div id="drop-area">Drag & Drop a text file here or click to upload</div>
@@ -63,6 +106,9 @@
       </div>
     </div>
   </div>
+  <div class="footer-container">
+    <img src="images/logo.png">
+  </div>
 
 
 
@@ -76,62 +122,117 @@
     const tabBar = document.getElementById('tab-bar');
     const modelSelect = document.getElementById('model-select');
 
-    let previousModelValue = modelSelect.value; 
+    const fileBtn = document.getElementById('file-btn');
+    const fileSubmenu = document.getElementById('file-submenu');
 
-modelSelect.addEventListener('change', async () => {
-  if (!currentTabId) {
-    alert('No active tab. Please load a file first.');
-    modelSelect.value = previousModelValue;
-    return;
-  }
+    const chatBtn = document.getElementById('chat-btn');
+    const chatSubmenu = document.getElementById('chat-submenu');
 
-  const tab = tabs.find(t => t.id === currentTabId);
-  if (!tab) return;
+    document.getElementById("exit-tab-btn").addEventListener("click", function () {
+      window.close();
+    });
+    document.getElementById('new-tab-btn').addEventListener('click', () => {
+      fileInput.click();
+    });
 
-  const newModelValue = modelSelect.value;
 
-  const confirmSwitch = confirm(
-    `Switch to model:\n"${newModelValue}"?\n\nThis will start a new chat and delete chat history.`
-  );
+    let activeSubmenu = null;
 
-  if (!confirmSwitch) {
-    modelSelect.value = previousModelValue;
-    return;
-  }
+    // Toggle submenu visibility
+    function toggleSubmenu(button, submenu) {
+      if (activeSubmenu && activeSubmenu !== submenu) {
+        activeSubmenu.style.display = 'none';
+      }
 
-  // 🧹 Delete old session from server
-  await deleteSessionOnServer(tab.sessionId);
+      const isVisible = submenu.style.display === 'block';
+      submenu.style.display = isVisible ? 'none' : 'block';
+      activeSubmenu = submenu.style.display === 'block' ? submenu : null;
+    }
 
-  // 🔁 Assign new sessionId
-  tab.sessionId = createSessionId();
+    // Handle file button click
+    fileBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      fileBtn.classList.add("active");
+      chatBtn.classList.remove("active");
+      toggleSubmenu(fileBtn, fileSubmenu);
+    });
 
-  // 🔄 Reset chat state
-  tab.chatHistory = [];
-  tab.modelSelected = false;
-  chatOutput.innerHTML = '';
+    // Handle chat button click
+    chatBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      chatBtn.classList.add("active");
+      fileBtn.classList.remove("active");
+      toggleSubmenu(chatBtn, chatSubmenu);
+    });
 
-  // 🔧 Update tab's model
-  tab.model = newModelValue;
+    // Close submenu when clicking outside
+    document.addEventListener('click', () => {
+      if (activeSubmenu) {
+        activeSubmenu.style.display = 'none';
+        activeSubmenu = null;
+      }
+    });
 
-  // 📡 Call backend to select new model
-  const success = await selectModelForSession();
+    // Prevent closing when clicking inside submenus
+    fileSubmenu.addEventListener('click', (event) => event.stopPropagation());
+    chatSubmenu.addEventListener('click', (event) => event.stopPropagation());
 
-  if (success) {
-    tab.modelSelected = true;
-    previousModelValue = newModelValue;
+    let previousModelValue = modelSelect.value;
 
-    // Optional: show confirmation
-    console.log(`✅ Switched to model: ${newModelValue}`);
+    modelSelect.addEventListener('change', async () => {
+      if (!currentTabId) {
+        alert('No active tab. Please load a file first.');
+        modelSelect.value = previousModelValue;
+        return;
+      }
 
-    // <== ADD THIS PART HERE
-    aiInput.disabled = false;  // make sure input is enabled
-    aiInput.focus();           // set focus so user can start typing immediately
+      const tab = tabs.find(t => t.id === currentTabId);
+      if (!tab) return;
 
-  } else {
-    modelSelect.value = previousModelValue;
-    alert('Failed to switch model. Reverting selection.');
-  }
-});
+      const newModelValue = modelSelect.value;
+
+      const confirmSwitch = confirm(
+        `Switch to model:\n"${newModelValue}"?\n\nThis will start a new chat and delete chat history.`
+      );
+
+      if (!confirmSwitch) {
+        modelSelect.value = previousModelValue;
+        return;
+      }
+
+      // 🧹 Delete old session from server
+      await deleteSessionOnServer(tab.sessionId);
+
+      // 🔁 Assign new sessionId
+      tab.sessionId = createSessionId();
+
+      // 🔄 Reset chat state
+      tab.chatHistory = [];
+      tab.modelSelected = false;
+      chatOutput.innerHTML = '';
+
+      // 🔧 Update tab's model
+      tab.model = newModelValue;
+
+      // 📡 Call backend to select new model
+      const success = await selectModelForSession();
+
+      if (success) {
+        tab.modelSelected = true;
+        previousModelValue = newModelValue;
+
+        // Optional: show confirmation
+        console.log(`✅ Switched to model: ${newModelValue}`);
+
+        // <== ADD THIS PART HERE
+        aiInput.disabled = false;  // make sure input is enabled
+        aiInput.focus();           // set focus so user can start typing immediately
+
+      } else {
+        modelSelect.value = previousModelValue;
+        alert('Failed to switch model. Reverting selection.');
+      }
+    });
 
 
 
@@ -185,34 +286,34 @@ modelSelect.addEventListener('change', async () => {
 
     // Call /select_model to set the model for the session (hardcoded to LangChainKVCache)
     async function selectModelForSession() {
-        try {
-            // Get the selected model value from the dropdown
-            const modelSelect = document.getElementById('model-select');
-            const selectedModel = modelSelect.value;
+      try {
+        // Get the selected model value from the dropdown
+        const modelSelect = document.getElementById('model-select');
+        const selectedModel = modelSelect.value;
 
-            const response = await fetch('http://127.0.0.1:5000/select_model', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    modelType: selectedModel // use selected option's value here
-                })
-            });
+        const response = await fetch('http://127.0.0.1:5000/select_model', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            modelType: selectedModel // use selected option's value here
+          })
+        });
 
-            if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
-            const data = await response.json();
-            console.log(`Model selected for session:`, data);
-            return true;
-        } catch (err) {
-            console.error('Error selecting model:', err);
-            return false;
-        }
+        if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
+        const data = await response.json();
+        console.log(`Model selected for session:`, data);
+        return true;
+      } catch (err) {
+        console.error('Error selecting model:', err);
+        return false;
+      }
     }
 
     // Create new tab and select model for session
     async function createTab(fileName, fileText) {
       const id = Date.now().toString();
       const sessionId = createSessionId();
-     tabs.push({
+      tabs.push({
         id,
         sessionId,
         name: fileName,
