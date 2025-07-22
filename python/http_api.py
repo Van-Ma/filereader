@@ -7,7 +7,7 @@ from flask_cors import CORS
 import logging
 
 # Import the ChatManager class
-from chat_manager import ChatManager
+from chat_manager import ChatManager, global_model_instance, global_model_type
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,30 +19,42 @@ CORS(app)
 # This instance will manage all user sessions internally.
 chat_manager = ChatManager()
 
-@app.route('/select_model', methods=['POST'])
-def select_model():
-    """Selects and instantiates a model for a given session via the ChatManager."""
+@app.route('/create_session', methods=['POST'])
+def create_session():
+    """Creates a new session."""
+    data = request.json
+    session_id = data.get('sessionId')
+    model_type_string = data.get('modelType') # Get optional modelType
+
+    if not session_id:
+        return jsonify({'error': 'Request must include "sessionId".'}), 400
+    
+    try:
+        message = chat_manager.create_session(session_id, model_type_string)
+        return jsonify({"status": "success", "message": message})
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logging.error(f"Failed to create session {session_id}: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to create session: {e}'}), 500
+
+@app.route('/change_model', methods=['POST'])
+def change_model():
+    """Changes the global model instance."""
     data = request.json
     model_type_string = data.get('modelType')
-    print("received model name: ", model_type_string)
 
     if not model_type_string:
         return jsonify({'error': 'Request must include "modelType".'}), 400
     
     try:
-        print("1")
-        # Use a dummy session ID or infer it if necessary within chat_manager, 
-        # as create_session still needs it for context creation.
-        # For global model selection, the session_id is mainly for context management.
-        message = chat_manager.create_session(request.remote_addr, model_type_string) # Using remote_addr as a dummy session ID
-        print("2")
+        message = chat_manager.change_model(model_type_string)
         return jsonify({"status": "success", "message": message})
     except ValueError as e:
-        print("why is this running ", str(e))
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        logging.error(f"Failed to create session {request.remote_addr}: {e}", exc_info=True)
-        return jsonify({'error': f'Failed to create session: {e}'}), 500
+        logging.error(f"Failed to change model to {model_type_string}: {e}", exc_info=True)
+        return jsonify({'error': f'Failed to change model: {e}'}), 500
 
 
 @app.route('/chat', methods=['POST'])

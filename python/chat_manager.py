@@ -30,40 +30,48 @@ class ChatManager:
         self.session_models: dict[str, ModelContext] = {}
         logging.info("ChatManager initialized and ready to manage sessions.")
 
-    def create_session(self, session_id: str, model_type_string: str) -> str:
-        print("1.1")
-        """Creates and stores a new model instance for a given session ID."""
+    def change_model(self, model_type_string: str) -> str:
+        """Changes the global model instance."""
         global global_model_instance
         global global_model_type
 
         if model_type_string not in MODEL_TYPES:
             raise ValueError(f"Invalid modelType. Must be one of: {MODEL_TYPES}")
-        print("1.2")
 
         try:
             implementation_type, model_name = model_type_string.split('/', 1)
         except ValueError:
             raise ValueError("Invalid modelType format. Expected 'ImplementationType/ModelName'.")
-        print("1.3")
 
         if global_model_instance is None or global_model_type != model_type_string:
             logging.info(f"Creating a global '{implementation_type}' model using '{model_name}'.")
             logging.warning("This is a slow, memory-intensive operation.")
-            print("1.4")
 
             if implementation_type == 'LangChainKVCache':
-                print("1.4.5")
                 global_model_instance = HuggingFaceLLMKVCache(model_name=model_name)
                 global_model_type = model_type_string
-                print("1.4.6")
-
             else: # 'HuggingFaceNoCache'
-                print("1.4.7")
                 global_model_instance = HuggingFaceNoCache(model_name=model_name)
                 global_model_type = model_type_string
-                print("1.4.8")
         else:
             logging.info(f"Using existing global model instance for '{model_type_string}'.")
+        
+        return f"Global model changed to {model_type_string}."
+
+    def create_session(self, session_id: str, model_type_string: str = None) -> str:
+        """Creates and stores a new model context for a given session ID, optionally changing the global model."""
+        if model_type_string:
+            print("model_type_string: ", model_type_string)
+            self.change_model(model_type_string) # Change global model if a new type is specified
+
+        if global_model_instance is None:
+            raise ValueError("No global model instance found. Please call /change_model first or provide model_type in create_session.")
+        
+        # Infer implementation_type from global_model_type
+        try:
+            implementation_type, _ = global_model_type.split('/', 1)
+        except ValueError:
+            raise ValueError("Invalid global_model_type format. Expected 'ImplementationType/ModelName'.")
 
         # Create context for the session
         if implementation_type == 'LangChainKVCache':
@@ -73,21 +81,19 @@ class ChatManager:
             from models.huggingface import HuggingFaceContext
             self.session_models[session_id] = HuggingFaceContext()
 
-        print("1.5")
-        
-        message = f"A dedicated {implementation_type} model ({model_name}) is now running for session {session_id}."
+        message = f"A new session {session_id} has been created with the current global model."
         logging.info(message)
-        print("1.6")
         return message
 
     def invoke(self, session_id: str, user_input: str, file_content: str = None) -> str:
         """Finds the correct model instance for the session and invokes it."""
+        print("availbable sessions: ", self.session_models.keys())
         model_context = self.session_models.get(session_id)
         if not model_context:
-            raise ValueError(f"Session {session_id} not found. Please call /select_model first.")
+            raise ValueError(f"Session {session_id} not found. Please call /create_session first.")
         
         if global_model_instance is None:
-            raise ValueError("No global model instance found. Please call /select_model first.")
+            raise ValueError("No global model instance found. Please call /change_model first.")
 
         return global_model_instance.invoke(model_context, user_input, file_content)
 
