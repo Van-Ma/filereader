@@ -1,4 +1,4 @@
-# api_tester.py
+# backend_api_tester.py
 # A terminal-based testing harness for the chatbot Flask API.
 
 import requests
@@ -6,23 +6,42 @@ import argparse
 import uuid
 import sys
 
-# --- UPDATED: Endpoints are now in a dictionary ---
 ENDPOINTS = {
-    "select_model": "/select_model",
+    "create_session": "/create_session",
+    "change_model": "/change_model",
     "chat": "/chat",
     "delete_session": "/delete_session"
 }
 
-def select_model(base_url: str, session_id: str, model_type: str) -> bool:
-    """Sends a request to select and initialize a model for the session."""
-    print(f"--> Selecting model '{model_type}' for session {session_id}...")
+def change_model(base_url: str, model_type: str) -> bool:
+    """Sends a request to change the global model."""
+    print(f"--> Changing model to '{model_type}'...")
+    payload = {
+        "modelType": model_type
+    }
+    try:
+        url = f"{base_url}{ENDPOINTS['change_model']}"
+        response = requests.post(url, json=payload, timeout=600) # 10 minute timeout for model loading
+        if response.status_code == 200:
+            print(f"<-- Success: {response.json().get('message')}")
+            return True
+        else:
+            print(f"<-- Error ({response.status_code}): {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"<-- API Connection Error: {e}")
+        return False
+
+def create_session(base_url: str, session_id: str, model_type: str) -> bool:
+    """Sends a request to create a new session."""
+    print(f"--> Creating session {session_id}...")
     payload = {
         "sessionId": session_id,
         "modelType": model_type
     }
     try:
-        url = f"{base_url}{ENDPOINTS['select_model']}"
-        response = requests.post(url, json=payload, timeout=600) # 10 minute timeout for model loading
+        url = f"{base_url}{ENDPOINTS['create_session']}"
+        response = requests.post(url, json=payload, timeout=30)
         if response.status_code == 200:
             print(f"<-- Success: {response.json().get('message')}")
             return True
@@ -39,6 +58,7 @@ def chat(base_url: str, session_id: str, message: str, file_content: str = None)
         "sessionId": session_id,
         "message": message
     }
+    print("chatting session_id: ", session_id)
     if file_content:
         payload["fileContent"] = file_content
     
@@ -104,10 +124,12 @@ def main():
             print(f"Error reading file: {e}. Exiting.")
             sys.exit(1)
 
-    # 1. Select the model for the session
-    if not select_model(args.base_url, session_id, args.model):
-        print("Failed to initialize model. Exiting.")
+    if not create_session(args.base_url, session_id, args.model):
+        print("Failed to create session with model. Exiting.")
         sys.exit(1)
+    else: print("Session created successfully with specified model.")
+    print("session_id: ", session_id)
+
 
     print("\n--- Chat Session Started ---")
     print("Type 'quit' or 'exit' to end the session.")
@@ -119,9 +141,7 @@ def main():
             if user_input.lower() in ['quit', 'exit']:
                 break
 
-            # 2. Send chat message
             if is_first_turn:
-                # Send file content only on the first turn
                 bot_response = chat(args.base_url, session_id, user_input, file_content)
                 is_first_turn = False
             else:
@@ -130,7 +150,6 @@ def main():
             print(f"Bot: {bot_response}")
     
     finally:
-        # 3. Clean up and delete the session
         print("\n--- Chat Session Ended ---")
         delete_session(args.base_url, session_id)
 
