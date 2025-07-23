@@ -1,102 +1,67 @@
 # UnRead Chatbot
 
-<table>
-  <tr>
-    <td><img src="./docs/assets/chat_preview_1.png" alt="Chatbot Preview 1" width="400"></td>
-    <td><img src="./docs/assets/chat_preview_2.png" alt="Chatbot Preview 2" width="400"></td>
-  </tr>
-</table>
+A multi-model chat application with document analysis capabilities, supporting local LLMs through LangChain and Hugging Face with an Electron frontend.
 
-### A simple, multi-model chatbot running on local LLMs through Langchain and Hugging Face with a beautiful Electron frontend.  
+![Chat Preview](./docs/assets/chat_preview_1.png)
 
+## Features
 
-#### Previews, searches, and answers complex questions about documents. Supports many SoTA edge models running locally. Has optimizations to kvcache.
+- Chat with various LLM models locally
+- Document analysis and Q&A
+- Support for multiple concurrent chat sessions
+- Optimized with KV cache for better performance
+- Clean, responsive UI
 
----
+## Quick Start
 
-### 1. Requirements
+### Prerequisites
+- Python 3.9+
+- Node.js 16+
+- Hugging Face account (for gated models)
 
-This project requires Python 3.9+ and Node.js/npm.
+### Installation
 
-- **Frontend:** `Node.js`
-- **Backend:** `flask`, `torch`, `transformers`, `langchain`, and other packages listed in `python/requirements.txt`.
+1. **Install frontend dependencies:**
+   ```bash
+   npm install
+   ```
 
----
+2. **Install backend dependencies:**
+   ```bash
+   pip install -r python/requirements.txt
+   ```
 
-### 2. Setup & Installation
+3. **Authenticate with Hugging Face** (required for gated models):
+   ```bash
+   huggingface-cli login
+   ```
 
-**A. Frontend Dependencies**
-Navigate to the project's root directory and run:
-```bash
-npm install
-```
-**B. Backend Dependencies**
+### Running the Application
 
-Navigate to the project's root directory and run:
-```bash
-pip install -r python/requirements.txt
-```
+1. **Start the backend server**:
+   ```bash
+   python python/http_api.py
+   ```
 
-**C. Hugging Face Authentication**
+2. **Start the frontend**:
+   ```bash
+   npm start
+   # or
+   npm electron .
+   ```
 
-To use gated models like Llama 3.1, run this command and enter your Hugging Face access token:
-```bash
-huggingface-cli login
-```
+## API Reference
 
----
+See the [API Documentation](./docs/docs.md#api-documentation) for detailed endpoint specifications and request/response formats.
 
-### 3. Running the Application
+## Supported Models
 
-**A. Frontend**
-```bash
-npm start or npm electron .
-```
-**B. Backend**
+- `meta-llama/Llama-3.1-8B-Instruct`
+- `meta-llama/Llama-3.2-1B-Instruct` 
+- `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
 
-Start the Flask server from the project's **root directory**:
-```bash
-python python/http_api.py
-```
-The server will start on `http://127.0.0.1:5000`.
+## Documentation
 
----
-
-### 4. API Endpoints
-
-#### `/select_model` (POST)
-Selects and initializes the global model instance. **This must be called before `/chat`.**
-- **Body (JSON):**
-  ```json
-  {
-    "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
-  }
-  ```
-
-#### `/chat` (POST)
-Sends a message to the selected global model for a chat. The chat ID is used to manage conversation context.
-- **Body (JSON):**
-  ```json
-  {
-    "chatId": "some-unique-user-id",
-    "message": "Hello, what is your name?",
-    "fileContent": "Optional: The full text of a document."
-  }
-  ```
-
-#### `/delete_chat` (POST)
-Deletes a chat and releases its context from memory.
-- **Body (JSON):**
-  ```json
-  {
-    "chatId": "some-unique-user-id"
-  }
-  ```
-
----
-
-### 5. Project Documentation
-
-For detailed documentation on the frontend, backend, and API, please see the `docs.md` file inside the `docs/` folder.
+For detailed documentation, please see the [docs](./docs/docs.md).
 
 [**View Full Documentation (docs/docs.md)**](./docs/docs.md)

@@ -64,40 +64,189 @@ The application supports two distinct backend implementations, selectable via th
 
 ## API Documentation
 
-The backend exposes the following endpoints:
+The backend exposes a RESTful API for interacting with the chat system. All endpoints expect JSON request bodies and return JSON responses.
 
-#### `/select_model`
+### Base URL
+```
+http://localhost:5000
+```
 
-- **Method:** `POST`
-- **Description:** Selects and initializes the global model instance. This must be called before `/chat` can be used.
-- **Body (JSON):**
-    ```json
-    {
-      "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
+### Endpoints
+
+#### 1. Select Model
+Initializes or changes the global model used for all new chats.
+
+- **Endpoint:** `POST /select_model`
+- **Request Body:**
+  ```json
+  {
+    "modelType": "LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct"
+  }
+  ```
+  
+  | Field      | Type   | Required | Description |
+  |------------|--------|----------|-------------|
+  | modelType  | String | Yes      | The model identifier in format `{implementation}/{model_path}` |
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "message": "Model initialized successfully"
+  }
+  ```
+
+#### 2. Create New Chat
+Creates a new chat session with optional model parameters.
+
+- **Endpoint:** `POST /create_chat`
+- **Request Body:**
+  ```json
+  {
+    "modelParameters": {
+      "framework_type": "LangChain",
+      "backend": "HuggingFace",
+      "model_version": "Base",
+      "hf_params": {
+        "model_name": "meta-llama/Llama-3.1-8B-Instruct",
+        "use_kv_cache": true
+      }
     }
-    ```
-- **Note:** `modelType` must be one of the valid configurations.
+  }
+  ```
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | modelParameters | Object | No | Model configuration (see below) |
 
-#### `/chat`
+  **Model Parameters:**
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | framework_type | String | Yes | Always "LangChain" |
+  | backend | String | Yes | Backend to use ("HuggingFace") |
+  | model_version | String | Yes | Model version ("Base" or "RAG") |
+  | hf_params | Object | Yes | HuggingFace specific parameters |
+  
+  **HuggingFace Parameters:**
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | model_name | String | Yes | Model identifier from HuggingFace |
+  | use_kv_cache | Boolean | Yes | Whether to use KV cache |
 
-- **Method:** `POST`
-- **Description:** Sends a message to the selected global model for an active chat. The chat ID is used to manage conversation context.
-- **Body (JSON):**
-    ```json
-    {
-      "chatId": "some-unique-user-id",
-      "message": "Hello, what is your name?",
-      "fileContent": "Optional: The full text of a document to provide context."
-    }
-    ```
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "chatId": "550e8400-e29b-41d4-a716-446655440000",
+    "message": "Chat created successfully"
+  }
+  ```
 
-#### `/delete_chat`
+#### 3. Send Message
+Sends a message to the chat and gets a response.
 
-- **Method:** `POST`
-- **Description:** Deletes a chat and releases its model from memory. This is important for managing resources.
-- **Body (JSON):**
-    ```json
-    {
-      "chatId": "some-unique-user-id"
-    }
-    ```
+- **Endpoint:** `POST /chat`
+- **Request Body:**
+  ```json
+  {
+    "chatId": "550e8400-e29b-41d4-a716-446655440000",
+    "message": "Hello, what can you do?",
+    "fileContent": "Optional text content from a document"
+  }
+  ```
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | chatId | String | Yes | Unique identifier for the chat |
+  | message | String | Yes | The user's message |
+  | fileContent | String | No | Optional document text for context |
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "response": "I'm an AI assistant that can help answer questions and analyze documents.",
+    "chatId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+
+#### 4. Get Chat History
+Retrieves the conversation history for a chat.
+
+- **Endpoint:** `GET /get_context_history/<chat_id>`
+- **URL Parameters:**
+  - `chat_id`: The ID of the chat
+  
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "history": [
+      {"role": "user", "content": "Hello"},
+      {"role": "assistant", "content": "Hi there! How can I help?"}
+    ]
+  }
+  ```
+
+#### 5. Clear Chat History
+Clears the conversation history for a chat.
+
+- **Endpoint:** `POST /clear_context`
+- **Request Body:**
+  ```json
+  {
+    "chatId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | chatId | String | Yes | The ID of the chat to clear |
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "message": "Context cleared for chat 550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+
+#### 6. Delete Chat
+Deletes a chat and frees associated resources.
+
+- **Endpoint:** `POST /delete_chat`
+- **Request Body:**
+  ```json
+  {
+    "chatId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | chatId | String | Yes | The ID of the chat to delete |
+
+- **Success Response (200 OK):**
+  ```json
+  {
+    "status": "success",
+    "message": "Chat 550e8400-e29b-41d4-a716-446655440000 deleted"
+  }
+  ```
+
+### Error Responses
+
+All error responses follow this format:
+```json
+{
+  "status": "error",
+  "error": "Error message describing what went wrong"
+}
+```
+
+Common error status codes:
+- `400 Bad Request`: Invalid request parameters
+- `404 Not Found`: Chat ID not found
+- `500 Internal Server Error`: Server-side error
