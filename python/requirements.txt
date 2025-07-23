@@ -6,4 +6,8 @@ accelerate
 sentencepiece
 langchain
 langchain-core
-pydantic
+langchain-huggingface
+faiss-cpu
+langgraph
+langchain-community
+sentence-transformers

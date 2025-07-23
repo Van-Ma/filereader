@@ -5,39 +5,22 @@ import requests
 import argparse
 import uuid
 import sys
+import json # Import json for pretty printing
+from typing import Dict, Any # Import Dict and Any for type hints
 
 ENDPOINTS = {
     "create_session": "/create_session",
-    "change_model": "/change_model",
+    "change_model": "/change_model", # Keep for completeness, though not directly tested here
     "chat": "/chat",
     "delete_session": "/delete_session"
 }
 
-def change_model(base_url: str, model_type: str) -> bool:
-    """Sends a request to change the global model."""
-    print(f"--> Changing model to '{model_type}'...")
-    payload = {
-        "modelType": model_type
-    }
-    try:
-        url = f"{base_url}{ENDPOINTS['change_model']}"
-        response = requests.post(url, json=payload, timeout=600) # 10 minute timeout for model loading
-        if response.status_code == 200:
-            print(f"<-- Success: {response.json().get('message')}")
-            return True
-        else:
-            print(f"<-- Error ({response.status_code}): {response.text}")
-            return False
-    except requests.exceptions.RequestException as e:
-        print(f"<-- API Connection Error: {e}")
-        return False
-
-def create_session(base_url: str, session_id: str, model_type: str) -> bool:
-    """Sends a request to create a new session."""
-    print(f"--> Creating session {session_id}...")
+def create_session(base_url: str, session_id: str, model_parameters: Dict[str, Any]) -> bool:
+    """Sends a request to create a new session with specified model parameters."""
+    print(f"--> Creating session {session_id} with model parameters: {json.dumps(model_parameters, indent=2)}...")
     payload = {
         "sessionId": session_id,
-        "modelType": model_type
+        "modelParameters": model_parameters
     }
     try:
         url = f"{base_url}{ENDPOINTS['create_session']}"
@@ -90,16 +73,36 @@ def delete_session(base_url: str, session_id: str):
 def main():
     """Main function to run the terminal chat client."""
     parser = argparse.ArgumentParser(description="Terminal client to test the chatbot API.")
-    # --- ADDED: Argument for the base URL ---
     parser.add_argument(
         "--base-url",
         default="http://127.0.0.1:5000",
         help="The base URL of the Flask API server."
     )
+    # New arguments for structured model parameters
     parser.add_argument(
-        "--model",
-        required=True,
-        help="The model configuration string (e.g., 'LangChainKVCache/meta-llama/Llama-3.1-8B-Instruct')."
+        "--framework-type",
+        default="LangChain", # Default to LangChain
+        help="The agent framework type (e.g., 'LangChain')."
+    )
+    parser.add_argument(
+        "--backend",
+        default="HuggingFace", # Default to HuggingFace
+        help="The backend model provider (e.g., 'HuggingFace', 'vLLM', 'OpenAI')."
+    )
+    parser.add_argument(
+        "--model-version",
+        default="Base", # Default to Base
+        help="The model version (e.g., 'Base', 'RAG')."
+    )
+    parser.add_argument(
+        "--model-name",
+        default="meta-llama/Llama-3.1-8B-Instruct", # Default model name
+        help="The specific model name (e.g., 'meta-llama/Llama-3.1-8B-Instruct')."
+    )
+    parser.add_argument(
+        "--use-kv-cache",
+        action="store_true", # Store True if flag is present
+        help="Enable KV caching for the model (default is False if not specified)."
     )
     parser.add_argument(
         "--file",
@@ -124,7 +127,18 @@ def main():
             print(f"Error reading file: {e}. Exiting.")
             sys.exit(1)
 
-    if not create_session(args.base_url, session_id, args.model):
+    # Construct ModelParameters dictionary
+    model_parameters = {
+        "framework_type": args.framework_type,
+        "backend": args.backend,
+        "model_version": args.model_version,
+        "hf_params": {
+            "model_name": args.model_name,
+            "use_kv_cache": args.use_kv_cache
+        }
+    }
+
+    if not create_session(args.base_url, session_id, model_parameters):
         print("Failed to create session with model. Exiting.")
         sys.exit(1)
     else: print("Session created successfully with specified model.")
@@ -141,7 +155,7 @@ def main():
             if user_input.lower() in ['quit', 'exit']:
                 break
 
-            if is_first_turn:
+            if is_first_turn and file_content:
                 bot_response = chat(args.base_url, session_id, user_input, file_content)
                 is_first_turn = False
             else:

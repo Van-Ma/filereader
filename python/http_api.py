@@ -7,7 +7,7 @@ from flask_cors import CORS
 import logging
 
 # Import the ChatManager class
-from chat_manager import ChatManager, global_model_instance, global_model_type
+from chat_manager import ChatManager
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,13 +24,13 @@ def create_session():
     """Creates a new session."""
     data = request.json
     session_id = data.get('sessionId')
-    model_type_string = data.get('modelType') # Get optional modelType
+    model_params = data.get('modelParameters') # Optional model parameters
 
     if not session_id:
         return jsonify({'error': 'Request must include "sessionId".'}), 400
     
     try:
-        message = chat_manager.create_session(session_id, model_type_string)
+        message = chat_manager.create_session(session_id, model_params)
         return jsonify({"status": "success", "message": message})
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -42,18 +42,18 @@ def create_session():
 def change_model():
     """Changes the global model instance."""
     data = request.json
-    model_type_string = data.get('modelType')
+    new_model_params = data.get('modelParameters')
 
-    if not model_type_string:
-        return jsonify({'error': 'Request must include "modelType".'}), 400
+    if not new_model_params:
+        return jsonify({'error': 'Request must include "modelParameters".'}), 400
     
     try:
-        message = chat_manager.change_model(model_type_string)
+        message = chat_manager.change_model(new_model_params)
         return jsonify({"status": "success", "message": message})
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        logging.error(f"Failed to change model to {model_type_string}: {e}", exc_info=True)
+        logging.error(f"Failed to change model to {new_model_params}: {e}", exc_info=True)
         return jsonify({'error': f'Failed to change model: {e}'}), 500
 
 
@@ -69,11 +69,11 @@ def chat():
         session_id = data.get('sessionId')
         file_content = data.get('fileContent', None)
 
-        bot_response = chat_manager.invoke(session_id, user_input, file_content)
-        return jsonify({'response': bot_response})
+        response = chat_manager.chat(session_id, user_input, file_content)
+        if response["error"]:
+            return jsonify({'error': response["response"]}), 500
+        return jsonify({'response': response["response"]})
 
-    except ValueError as e: # Catches session not found errors
-        return jsonify({'error': str(e)}), 404
     except Exception as e:
         logging.error(f"An error occurred in the /chat endpoint: {e}", exc_info=True)
         return jsonify({'error': 'An internal server error occurred.'}), 500
@@ -88,7 +88,6 @@ def delete_session():
     if not session_id:
         return jsonify({'error': 'Request must include a "sessionId".'}), 400
     
-    # For global model, deletion still needs sessionId to delete the context
     success, message = chat_manager.delete_session(session_id)
     if success:
         return jsonify({"status": "success", "message": message})
