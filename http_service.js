@@ -12,36 +12,36 @@ let tabs = [];           // Define or get your tabs array
 // Function to request a new chat ID from backend
 async function requestNewChatId() {
   try {
-    const response = await fetch('http://127.0.0.1:5000/create_session', {
+    const response = await fetch('http://127.0.0.1:5000/create_chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}) // Empty body to create new session
+      body: JSON.stringify({}) // Empty body to create new chat
     });
 
     const data = await response.json();
 
-    if (response.ok && data.status === 'success' && data.sessionId) {
-      // Store new sessionId as chat_id in localStorage for compatibility
-      localStorage.setItem('chat_id', data.sessionId);
+    if (response.ok && data.status === 'success' && data.chatId) {
+      // Store new chatId as chat_id in localStorage for compatibility
+      localStorage.setItem('chat_id', data.chatId);
 
       // Update UI
       if (chatIdElement) {
-        chatIdElement.textContent = `Chat ID: ${data.sessionId}`;
+        chatIdElement.textContent = `Chat ID: ${data.chatId}`;
       }
 
-      window.currentChatId = data.sessionId;
-      return data.sessionId;
+      window.currentChatId = data.chatId;
+      return data.chatId;
     } else {
-      alert('Failed to create new chat session: ' + (data.error || 'Unknown error'));
+      alert('Failed to create new chat: ' + (data.error || 'Unknown error'));
       return null;
     }
   } catch (error) {
-    alert('Error creating new chat session: ' + error.message);
+    alert('Error creating new chat: ' + error.message);
     return null;
   }
 }
 
-// Run on page load: fetch stored or create new session
+// Run on page load: fetch stored or create new chat
 async function fetchAndStoreChatId() {
   let storedChatId = localStorage.getItem('chat_id');
   if (storedChatId) {
@@ -56,8 +56,8 @@ async function fetchAndStoreChatId() {
 
 window.addEventListener('DOMContentLoaded', fetchAndStoreChatId);
 
-// Call /select_model to set the model for the session
-async function selectModelForSession() {
+// Call /select_model to set the model for the chat
+async function selectModelForChat() {
   try {
     const selectedModel = modelSelect.value;
 
@@ -71,7 +71,7 @@ async function selectModelForSession() {
 
     if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
     const data = await response.json();
-    console.log(`Model selected for session:`, data);
+    console.log(`Model selected for chat:`, data);
     return true;
   } catch (err) {
     console.error('Error selecting model:', err);
@@ -81,7 +81,7 @@ async function selectModelForSession() {
 
 // Model selection event listener
 modelSelect.addEventListener('change', async () => {
-  const tab = currentTabId ? tabs.find(t => t.id === currentTabId) : null;
+  const chat = currentChatId ? chats.find(c => c.id === currentChatId) : null;
   const newModelValue = modelSelect.value;
 
   const confirmSwitch = confirm(
@@ -94,8 +94,8 @@ modelSelect.addEventListener('change', async () => {
   }
 
   if (tab) {
-    // Reset session and chat history on tab if exists
-    tab.sessionId = createSessionId(); // Make sure createSessionId() is defined
+    // Reset chat history on tab if exists
+    tab.chatId = createChatId(); // Make sure createChatId() is defined
     tab.chatHistory = [];
     tab.modelSelected = false;
     if (chatOutput) chatOutput.innerHTML = '';
@@ -106,7 +106,7 @@ modelSelect.addEventListener('change', async () => {
   showModelLoader(); // Ensure this function exists
 
   // Call backend to select new model
-  const success = await selectModelForSession();
+  const success = await selectModelForChat();
 
   // Hide loader when done
   hideModelLoader(); // Ensure this function exists

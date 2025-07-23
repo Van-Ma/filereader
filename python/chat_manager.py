@@ -1,6 +1,6 @@
 # chat_manager.py
 # This file contains the ChatManager class, which is responsible for
-# managing the lifecycle of all chat sessions and their associated models.
+# managing the lifecycle of all chats and their associated models.
 
 import logging
 import uuid
@@ -21,14 +21,14 @@ class ChatManager:
 
     def __init__(self):
         logging.info("ChatManager initialized, ready to interact with global LangGraph app.")
-        # Maps session_id -> ModelParameters so each session can keep its own settings
-        self._session_parameters: Dict[str, ModelParameters] = {}
+        # Maps chat_id -> ModelParameters so each chat can keep its own settings
+        self._chat_parameters: Dict[str, ModelParameters] = {}
 
-    def create_session(self, model_params: Optional[ModelParameters] = None) -> tuple[str, str]:
-        """Register a new chat session and eagerly warm-up the chosen global app."""
+    def create_chat(self, model_params: Optional[ModelParameters] = None) -> tuple[str, str]:
+        """Register a new chat and eagerly warm-up the chosen global app."""
         # Fallback to Base defaults if caller omitted parameters
-        # Auto-generate a new session UUID
-        session_id: str = str(uuid.uuid4())
+        # Auto-generate a new chat UUID
+        chat_id: str = str(uuid.uuid4())
 
         if model_params is None:
             model_params = {
@@ -42,7 +42,7 @@ class ChatManager:
             }
 
         # Persist parameters for later chat calls
-        self._session_parameters[session_id] = model_params
+        self._chat_parameters[chat_id] = model_params
 
         # Eagerly initialise the required global app so first message is fast
         if model_params.get("model_version") == "RAG":
@@ -51,26 +51,26 @@ class ChatManager:
             get_global_base_app(model_params)
 
         message = (
-            f"Session {session_id} ready with model_version={model_params.get('model_version', 'Base')}."
+            f"Chat {chat_id} ready with model_version={model_params.get('model_version', 'Base')}."
         )
         logging.info(message)
-        return session_id, message
+        return chat_id, message
 
-    def chat(self, session_id: str, user_input: str, file_content: Optional[Union[str, List[str]]] = None, model_params: Optional[ModelParameters] = None) -> Dict[str, Any]:
-        logging.info(f"Received chat message for session {session_id}. User input: {user_input}")
+    def chat(self, chat_id: str, user_input: str, file_content: Optional[Union[str, List[str]]] = None, model_params: Optional[ModelParameters] = None) -> Dict[str, Any]:
+        logging.info(f"Received chat message for chat {chat_id}. User input: {user_input}")
 
-        # If the session wasn't explicitly created, register it on-the-fly
-        if session_id not in self._session_parameters and model_params is not None:
-            self._session_parameters[session_id] = model_params
+        # If the chat wasn't explicitly created, register it on-the-fly
+        if chat_id not in self._chat_parameters and model_params is not None:
+            self._chat_parameters[chat_id] = model_params
         
-        # Pick correct global app based on stored session parameters (defaults to Base)
-        model_params = self._session_parameters.get(session_id)
+        # Pick correct global app based on stored chat parameters (defaults to Base)
+        model_params = self._chat_parameters.get(chat_id)
         if model_params and model_params.get("model_version") == "RAG":
             current_app = get_global_rag_app(model_params)
         else:
             current_app = get_global_base_app(model_params if model_params else None)
 
-        config = {"configurable": {"thread_id": session_id}}
+        config = {"configurable": {"thread_id": chat_id}}
         
         input_messages = [HumanMessage(content=user_input)]
         graph_input: ChatState = {
@@ -93,14 +93,14 @@ class ChatManager:
             response_content = ai_message.content
             return {"response": response_content, "error": False}
         except Exception as e:
-            logging.exception(f"Error during LLM invocation for session {session_id}:")
+            logging.exception(f"Error during LLM invocation for chat {chat_id}:")
             return {"response": f"An error occurred: {str(e)}", "error": True}
 
-    def get_context_history(self, session_id: str) -> List[Dict[str, str]]:
-        logging.info(f"Getting chat context history for session {session_id}.")
+    def get_context_history(self, chat_id: str) -> List[Dict[str, str]]:
+        logging.info(f"Getting chat context history for chat {chat_id}.")
         current_app = get_global_base_app() # Default to base app for history operations
 
-        config = {"configurable": {"thread_id": session_id}}
+        config = {"configurable": {"thread_id": chat_id}}
         try:
             state = current_app.get_state(config)
             history_dicts = []
@@ -109,25 +109,25 @@ class ChatManager:
                     history_dicts.append({"role": message.type, "content": message.content})
             return history_dicts
         except Exception as e:
-            logging.warning(f"Could not retrieve state for session {session_id}: {e}")
+            logging.warning(f"Could not retrieve state for chat {chat_id}: {e}")
             return []
 
-    def clear_context(self, session_id: str):
-        logging.info(f"Clearing chat context for session {session_id}.")
+    def clear_context(self, chat_id: str):
+        logging.info(f"Clearing chat context for chat {chat_id}.")
         current_app = get_global_base_app() # Default to base app for clear operations
-        config = {"configurable": {"thread_id": session_id}}
+        config = {"configurable": {"thread_id": chat_id}}
         try:
             current_app.clear(config)
-            logging.info(f"Cleared context for session {session_id}.")
+            logging.info(f"Cleared context for chat {chat_id}.")
         except Exception as e:
-            logging.error(f"Failed to clear context for session {session_id}: {e}")
+            logging.error(f"Failed to clear context for chat {chat_id}: {e}")
 
     def change_global_model(self, model_params: ModelParameters) -> tuple[bool, str]:
         """Rebuild the global LangGraph app (Base or RAG) with new parameters."""
         from models.langchain import set_global_app
         try:
             set_global_app(model_params)
-            # Optionally remember as new default for subsequently created sessions
+            # Optionally remember as new default for subsequently created chats
             self._default_parameters = model_params  # type: ignore
             message = (
                 f"Global model switched to {model_params.get('model_version', 'Base')} - "
@@ -139,16 +139,16 @@ class ChatManager:
             logging.error(f"Failed to switch global model: {e}")
             return False, f"Failed to switch global model: {str(e)}"
 
-    def delete_session(self, session_id: str) -> tuple[bool, str]:
-        logging.info(f"Deleting chat session history for {session_id}.")
+    def delete_chat(self, chat_id: str) -> tuple[bool, str]:
+        logging.info(f"Deleting chat history for {chat_id}.")
         current_app = get_global_base_app() # Default to base app for delete operations
-        config = {"configurable": {"thread_id": session_id}}
+        config = {"configurable": {"thread_id": chat_id}}
         try:
             current_app.clear(config)
-            message = f"Session {session_id} history deleted."
+            message = f"Chat {chat_id} history deleted."
             logging.info(message)
             return True, message
         except Exception as e:
-            logging.error(f"Failed to delete session {session_id}: {e}")
-            message = f"An error occurred while deleting session {session_id}: {str(e)}"
+            logging.error(f"Failed to delete chat {chat_id}: {e}")
+            message = f"An error occurred while deleting chat {chat_id}: {str(e)}"
             return False, message

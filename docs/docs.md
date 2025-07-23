@@ -38,7 +38,7 @@ ___(Fill in a description of the main Electron process, how the browser window i
 The backend is organized into three main layers:
 
 -   **`http_api.py`**: The top-level web server. It handles incoming HTTP requests and delegates all logic to a `ChatManager` instance. It knows nothing about the underlying AI models.
--   **`chat_manager.py`**: The central controller. It manages user sessions and instantiates the correct model implementation for each session.
+-   **`chat_manager.py`**: The central controller. It manages user chats and instantiates the correct model implementation for each chat.
 -   **`models/` directory**: Contains the two distinct AI model implementations. Each class in this directory is fully self-contained and responsible for loading its own model and managing its own state.
 
 #### Model Implementations
@@ -81,23 +81,23 @@ The backend exposes the following endpoints:
 #### `/chat`
 
 - **Method:** `POST`
-- **Description:** Sends a message to the selected global model for an active session. The session ID is used to manage conversation context.
+- **Description:** Sends a message to the selected global model for an active chat. The chat ID is used to manage conversation context.
 - **Body (JSON):**
     ```json
     {
-      "sessionId": "some-unique-user-id",
+      "chatId": "some-unique-user-id",
       "message": "Hello, what is your name?",
       "fileContent": "Optional: The full text of a document to provide context."
     }
     ```
 
-#### `/delete_session`
+#### `/delete_chat`
 
 - **Method:** `POST`
-- **Description:** Deletes a session and releases its model from memory. This is important for managing resources.
+- **Description:** Deletes a chat and releases its model from memory. This is important for managing resources.
 - **Body (JSON):**
     ```json
     {
-      "sessionId": "some-unique-user-id"
+      "chatId": "some-unique-user-id"
     }
-    
+    ```
