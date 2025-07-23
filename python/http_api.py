@@ -3,147 +3,132 @@
 # to a central ChatManager that handles all session logic.
 
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-import logging
+from flask_cors import CORS # Ensure CORS is imported if you need it
 import uuid
-import os, json
-from datetime import datetime
+import logging
 
-# Import the ChatManager class
 from chat_manager import ChatManager
+from models.langchain import get_global_base_app, get_global_rag_app
+from models.model_parameters import ModelParameters # Keep for potential model selection logic in http_api
 
-# Configure basic logging
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Initialize the Flask application
 app = Flask(__name__)
-CORS(app)
+CORS(app) # Enable CORS for all routes if frontend is on different origin
 
-# This instance will manage all user sessions internally.
+# Initialize ChatManager once globally. It now manages interactions with global LangGraph apps.
 chat_manager = ChatManager()
 
+# Initialize the global base and RAG LangGraph apps when the Flask app starts
+# This ensures the LLMs are loaded once and cached.
+# We can lazily load them via the getters, but forcing load here ensures readiness.
+# For now, let's rely on the lazy loading in get_global_base_app/get_global_rag_app to avoid startup delays
+# if the models are very large.
 
-
-
-SAVE_DIR = "chat_history"
-os.makedirs(SAVE_DIR, exist_ok=True)  # ensure folder exists
-
-@app.route('/save_chat', methods=['POST'])
-def save_chat():
-    data = request.get_json() or {}
-    
-    # Use provided or generate a new chat ID
-    chat_id = data.get("chatId", f"session_{uuid.uuid4().hex[:8]}")
-    messages = data.get("messages")
-
-    # If no messages, use fake ones for testing
-    if not messages:
-        messages = [
-            {"sender": "user", "message": "Hello, AI!", "timestamp": "2025-07-23T19:00:00"},
-            {"sender": "ai", "message": "Hi there! How can I help you?", "timestamp": "2025-07-23T19:00:01"}
-        ]
-
-    filename = f"{chat_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    filepath = os.path.join(SAVE_DIR, filename)
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump({
-            "chat_id": chat_id,
-            "saved_at": datetime.now().isoformat(),
-            "messages": messages
-        }, f, indent=2)
-
-    return jsonify({"status": "success", "filename": filename, "folder": SAVE_DIR})
-
-chat_sessions = {}
-
+@app.route('/')
+def home():
+    return "Chatbot Backend is Running!"
 
 @app.route('/create_session', methods=['POST'])
-def create_session():
-    data = request.json or {}
-    try:
-        chat_id = data.get('sessionId') or str(uuid.uuid4())
-        model_params = data.get('modelParameters')
-
-        chat_sessions[chat_id] = {'model_params': model_params}
-        message = "Session created"
-        
-        return jsonify({"status": "success", "chat_id": chat_id, "message": message})
-    except Exception as e:
-        import traceback
-        traceback.print_exc() 
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/change_model', methods=['POST'])
-def change_model():
-    """Changes the global model instance."""
+def create_chat_session():
     data = request.json
-    new_model_params = data.get('modelParameters')
+    model_parameters_dict = data.get('modelParameters')  # Dict passed straight through
 
-    if not new_model_params:
-        return jsonify({'error': 'Request must include "modelParameters".'}), 400
-    
+    # The ChatManager's create_session now just logs and prepares, LangGraph handles actual session creation
     try:
-        message = chat_manager.change_model(new_model_params)
-        return jsonify({"status": "success", "message": message})
+        # Determine which global app to use for this session based on model_parameters_dict
+        # For now, we will default to the base app if no specific model parameters are given.
+        # Future: Expand this logic to select between base_app and rag_app based on model_parameters_dict["model_version"]
+        # For example:
+        # if model_parameters_dict and model_parameters_dict.get("model_version") == "RAG":
+        #     current_global_app = get_global_rag_app(ModelParameters(**model_parameters_dict))
+        # else:
+        #     current_global_app = get_global_base_app(ModelParameters(**model_parameters_dict))
+        
+        # For now, we'll let chat_manager handle which global app it uses for the actual chat.
+        # This endpoint just confirms the session_id is ready.
+        session_id, message = chat_manager.create_session(model_parameters_dict)
+        return jsonify({"status": "success", "sessionId": session_id, "message": message}), 200
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        logging.error(f"Validation error creating session: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 400
     except Exception as e:
-        logging.error(f"Failed to change model to {new_model_params}: {e}", exc_info=True)
-        return jsonify({'error': f'Failed to change model: {e}'}), 500
+        logging.exception("Error creating session:")
+        return jsonify({"status": "error", "message": f"An internal error occurred: {str(e)}"}), 500
 
+# Removed @app.route('/change_model', methods=['POST']) as it conflicts with single global app concept
 
 @app.route('/chat', methods=['POST'])
-def chat():
-    """Handles chat requests by routing them to the ChatManager."""
+def chat_message():
+    data = request.json
+    session_id = data.get('sessionId')
+    message = data.get('message')
+    # Allow caller to specify model parameters inline with chat if session was not created explicitly
+    model_parameters_dict = data.get('modelParameters')
+    file_content = data.get('fileContent') # This will be passed to LangGraph state
+
+    if not session_id or not message:
+        return jsonify({"status": "error", "message": "Session ID and message are required."}), 400
+
     try:
-        data = request.json
-        if not data or 'message' not in data or 'sessionId' not in data:
-            return jsonify({'error': 'Request must include a "message" and a "sessionId".'}), 400
-
-        user_input = data.get('message')
-        chat_id = data.get('sessionId')
-        file_content = data.get('fileContent', None)
-
-        response = chat_manager.chat(chat_id, user_input, file_content)
-        if response["error"]:
-            return jsonify({'error': response["response"]}), 500
-        return jsonify({'response': response["response"]})
-
+        # chat_manager now directly interfaces with the global LangGraph app
+        response_data = chat_manager.chat(session_id, message, file_content, model_parameters_dict)
+        if response_data.get("error"):
+            return jsonify({"status": "error", "message": response_data["response"]}), 500
+        return jsonify({"status": "success", "response": response_data["response"]}), 200
     except Exception as e:
-        logging.error(f"An error occurred in the /chat endpoint: {e}", exc_info=True)
-        return jsonify({'error': 'An internal server error occurred.'}), 500
+        logging.exception(f"Error during chat for session {session_id}:")
+        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
+@app.route('/get_context_history', methods=['POST'])
+def get_context_history():
+    data = request.json
+    session_id = data.get('sessionId')
+
+    if not session_id:
+        return jsonify({"status": "error", "message": "Session ID is required."}), 400
+
+    try:
+        history = chat_manager.get_context_history(session_id)
+        return jsonify({"status": "success", "history": history}), 200
+    except Exception as e:
+        logging.exception(f"Error getting context history for session {session_id}:")
+        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+
+@app.route('/clear_context', methods=['POST'])
+def clear_context():
+    data = request.json
+    session_id = data.get('sessionId')
+
+    if not session_id:
+        return jsonify({"status": "error", "message": "Session ID is required."}), 400
+
+    try:
+        chat_manager.clear_context(session_id)
+        return jsonify({"status": "success", "message": f"Context for session {session_id} cleared."}), 200
+    except Exception as e:
+        logging.exception(f"Error clearing context for session {session_id}:")
+        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/delete_session', methods=['POST'])
 def delete_session():
-    """Deletes a session manager via the ChatManager."""
     data = request.json
-    chat_id = data.get('sessionId')
+    session_id = data.get('sessionId')
 
-    if not chat_id:
-        return jsonify({'error': 'Request must include a "sessionId".'}), 400
-    
-    success, message = chat_manager.delete_session(chat_id)
-    if success:
-        return jsonify({"status": "success", "message": message})
-    else:
-        return jsonify({'error': message}), 404
+    if not session_id:
+        return jsonify({"status": "error", "message": "Session ID is required."}), 400
 
-@app.route('/save_session', methods=['POST'])
-def save_chat_session():
-    data = request.get_json()
-    chat_id = data.get('chat_id')
-    messages = data.get('messages', [])
-    context = data.get('context', [])
+    try:
+        success, message = chat_manager.delete_session(session_id)
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "error", "message": message}), 404
+    except Exception as e:
+        logging.exception(f"Error deleting session {session_id}:")
+        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
-    if not chat_id:
-        return jsonify({'error': 'chat_id is required'}), 400
-
-    save_session(chat_id, messages, context)
-    return jsonify({'status': 'saved', 'chat_id': chat_id})
 
 if __name__ == '__main__':
-    logging.info("\nFlask server is starting...")
-    logging.info("Ready to manage sessions via API endpoints.")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(debug=True)

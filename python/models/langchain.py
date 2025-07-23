@@ -4,6 +4,7 @@
 import logging
 from typing import Any, Optional, List, Dict, Sequence, Union, Tuple
 import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -14,14 +15,18 @@ from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_huggingface import HuggingFacePipeline
-from langchain_huggingface.chat_models import ChatHuggingFace # Import ChatHuggingFace
+from langchain_huggingface.chat_models import ChatHuggingFace
 
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import TypedDict, Annotated
 
-from models.custom_huggingface_llm import CustomHuggingFaceLLM, HuggingFaceParameters # Import HuggingFaceParameters from its new location
-from models.model_parameters import ModelParameters # Only import ModelParameters from chat_manager
+from models.custom_huggingface_llm import CustomHuggingFaceLLM
+from models.model_parameters import ModelParameters, HuggingFaceParameters
+from models.model_cache import GLOBAL_HF_MODEL_CACHE
+
+# Configure logging for this module
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define LangGraph State
 class ChatState(TypedDict):
@@ -42,6 +47,10 @@ ALLOWED_HUGGINGFACE_MODELS = {
     "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
 }
 
+# --- Global LangGraph App Instances ---
+_global_base_app = None
+_global_rag_app = None
+
 class LangChainBase:
     """A base LangChain implementation using LangGraph for state management and a custom LLM."""
     
@@ -50,7 +59,7 @@ class LangChainBase:
         framework_type = model_params["framework_type"]
         backend = model_params["backend"]
         model_version = model_params["model_version"]
-        hf_params = model_params.get("hf_params") # Get hf_params, will be validated below
+        hf_params = model_params.get("hf_params")
 
         if framework_type != "LangChain":
             raise ValueError(f"Invalid framework_type for LangChainBase: '{framework_type}'. Must be 'LangChain'.")
@@ -59,14 +68,12 @@ class LangChainBase:
         if model_version != "Base":
             raise ValueError(f"Invalid model_version for LangChainBase: '{model_version}'. Must be 'Base'.")
         
-        # Validate hf_params presence and type for HuggingFace backend
         if not hf_params or not isinstance(hf_params, dict):
             raise ValueError("Missing or invalid 'hf_params' for HuggingFace backend in LangChainBase.")
-        # Convert to TypedDict for type safety and access (already validated structurally in chat_manager)
         hf_params_typed: HuggingFaceParameters = hf_params 
 
         if hf_params_typed["model_name"] not in ALLOWED_HUGGINGFACE_MODELS:
-            raise ValueError("Invalid model_name for LangChainBase: '{}'. Must be one of {}".format(hf_params_typed['model_name'], list(ALLOWED_HUGGINGFACE_MODELS)))
+            raise ValueError("Invalid model_name for LangChainBase: '{}'. Must be one of {}.".format(hf_params_typed["model_name"], list(ALLOWED_HUGGINGFACE_MODELS)))
 
         self.model_id = hf_params_typed["model_name"]
         self.use_kv_cache = hf_params_typed["use_kv_cache"]
@@ -76,19 +83,56 @@ class LangChainBase:
         else:
             logging.info("Initializing ChatHuggingFace with HuggingFacePipeline model '{}' (no explicit KV cache across invocations).".format(self.model_id))
             try:
-                # Use ChatHuggingFace to wrap HuggingFacePipeline for tutorial-like message passing
-                pipeline_llm = HuggingFacePipeline.from_model_id(
-                    model_id=self.model_id,
-                    task="text-generation",
-                    device=0 if torch.cuda.is_available() else -1, # -1 for CPU, 0 for first GPU
-                    pipeline_kwargs={
-                        "max_new_tokens": 256, 
-                        "do_sample": True, 
-                        "temperature": 0.6, 
-                        "top_p": 0.9,
+                if self.model_id in GLOBAL_HF_MODEL_CACHE:
+                    logging.info(f"Using cached HuggingFacePipeline model for '{self.model_id}'.")
+                    loaded_model = GLOBAL_HF_MODEL_CACHE[self.model_id]['model']
+                    loaded_tokenizer = GLOBAL_HF_MODEL_CACHE[self.model_id]['tokenizer']
+                else:
+                    logging.info(f"Loading HuggingFacePipeline model '{self.model_id}' (not in cache)...")
+                    if torch.cuda.is_available():
+                        device = torch.device("cuda")
+                        logging.info("CUDA available. Loading model on GPU.")
+                        to_kwargs = {"device": device}
+                    else:
+                        logging.info("CUDA not available. Loading model on CPU.")
+                        to_kwargs = {}  # .to() call will be skipped for CPU to avoid negative index
+
+                    loaded_tokenizer = AutoTokenizer.from_pretrained(self.model_id)
+                    loaded_model = AutoModelForCausalLM.from_pretrained(
+                        self.model_id, torch_dtype=torch.bfloat16
+                    )
+                    if to_kwargs:
+                        loaded_model = loaded_model.to(**to_kwargs)
+                    if loaded_tokenizer.pad_token is None:
+                        loaded_tokenizer.pad_token = loaded_tokenizer.eos_token
+                    
+                    GLOBAL_HF_MODEL_CACHE[self.model_id] = {
+                        'model': loaded_model,
+                        'tokenizer': loaded_tokenizer
                     }
-                )
-                self.llm = ChatHuggingFace(llm=pipeline_llm) # Wrap the pipeline with ChatHuggingFace
+                    logging.info(f"HuggingFacePipeline model and tokenizer for '{self.model_id}' cached.")
+
+                from transformers import pipeline as hf_pipeline
+
+                gen_kwargs = dict(max_new_tokens=256, do_sample=True, temperature=0.6, top_p=0.9)
+                if torch.cuda.is_available():
+                    pipe = hf_pipeline(
+                        "text-generation",
+                        model=loaded_model,
+                        tokenizer=loaded_tokenizer,
+                        device=0,
+                        **gen_kwargs,
+                    )
+                else:
+                    pipe = hf_pipeline(
+                        "text-generation",
+                        model=loaded_model,
+                        tokenizer=loaded_tokenizer,
+                        **gen_kwargs,
+                    )
+
+                pipeline_llm = HuggingFacePipeline(pipeline=pipe)
+                self.llm = ChatHuggingFace(llm=pipeline_llm)
             except Exception as e:
                 logging.error("Failed to load HuggingFacePipeline model '{}'. This could be due to: ".format(self.model_id) +
                               "1. Invalid model name."
@@ -96,88 +140,63 @@ class LangChainBase:
                               "3. Network issues preventing model download."
                               "4. Hugging Face rate limits or authentication issues (for private models)."
                               "Error details: {}".format(e))
-                raise # Re-raise the exception to propagate the error
-
-        self.checkpointer = MemorySaver()
+                raise
 
         self.base_chat_prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a helpful and friendly chatbot."),
             MessagesPlaceholder(variable_name="messages")
         ])
 
-        workflow = StateGraph(ChatState)
-        workflow.add_node("call_model", self._call_model_node)
-        workflow.set_entry_point("call_model")
-        workflow.add_edge("call_model", END)
-        self.app = workflow.compile(checkpointer=self.checkpointer)
-
     def _call_model_node(self, state: ChatState) -> Dict[str, Any]:
-        messages = state["messages"]
+        """Generate a response for the Base chat model.
 
-        response_text = ""
+        – Guarantees the "helpful chatbot" system prompt exists exactly once per
+          thread.
+        – Injects any uploaded file contents as extra context (base-only).
+        """
+        # Make a working copy so we do not mutate the original list inside state
+        prompt_messages: List[BaseMessage] = list(state["messages"])
+        new_state_messages: List[BaseMessage] = []
+
+        # 1. Add the system prompt once
+        if not any(isinstance(m, SystemMessage) for m in prompt_messages):
+            sys_msg = SystemMessage(content="You are a helpful and friendly chatbot.")
+            prompt_messages.insert(0, sys_msg)
+            new_state_messages.append(sys_msg)  # persist system msg in thread state
+
+        # 2. If the caller supplied file content, prepend it as context (only for this round)
+        file_chunks = state.get("file_contents", [])
+        if file_chunks:
+            ctx_msg = SystemMessage(content="Additional context provided by the user:\n\n" + "\n\n".join(file_chunks))
+            prompt_messages.insert(1, ctx_msg)
+            # Do *not* add ctx_msg to new_state_messages; we don't want to store bulky files forever
+
+        # 3. Invoke the underlying LLM
         if self.use_kv_cache:
-            # For CustomHuggingFaceLLM with KV cache, explicitly use tokenizer to format
-            if hasattr(self.llm, 'tokenizer') and self.llm.tokenizer:
-                prompt_string = self.llm.tokenizer.apply_chat_template(
-                    messages, add_generation_prompt=True, tokenize=False
-                )
-                response_text, _ = self.llm.invoke_with_cache(prompt_string)
-            else:
-                # Fallback if tokenizer is unexpectedly missing (should not happen for CustomHuggingFaceLLM)
-                logging.error("CustomHuggingFaceLLM instance missing tokenizer. Cannot format prompt.")
-                raise ValueError("LLM tokenizer missing for KV cache model.")
+            prompt_string = self.llm.tokenizer.apply_chat_template(
+                prompt_messages, add_generation_prompt=True, tokenize=False
+            )
+            response_text = self.llm.invoke(prompt_string)
         else:
-            # For ChatHuggingFace (no explicit KV cache), pass messages directly to invoke
-            response_text = self.llm.invoke(messages).content # .content to get string from AIMessage
-        
+            response_text = self.llm.invoke(prompt_messages).content
 
-        return {"messages": [AIMessage(content=response_text)]}
+        # 4. Clean up any special tokens (e.g., Llama chat template tags)
+        cleaned_response = self._strip_special_tokens(response_text)
 
-    def invoke(self, session_id: str, user_input: str, file_content: Optional[Union[str, List[str]]] = None) -> str:
-        config = {"configurable": {"thread_id": session_id}}
-        
-        input_messages = [HumanMessage(content=user_input)]
-        graph_input: ChatState = {
-            "messages": input_messages,
-            "file_contents": [], # Ensure this is always initialized
-            "rag_enabled": False # Ensure this is always initialized
-        }
-        
-        if file_content:
-            if isinstance(file_content, str):
-                graph_input["file_contents"].append(file_content)
-            elif isinstance(file_content, list):
-                graph_input["file_contents"].extend(file_content)
-            else:
-                logging.warning("Unsupported file_content type: {}. Ignoring.".format(type(file_content)))
+        new_state_messages.append(AIMessage(content=cleaned_response))
+        return {"messages": new_state_messages}
 
-        output = self.app.invoke(graph_input, config)
-        
-        ai_message = output["messages"][-1]
-        return ai_message.content
-
-    def get_context_history(self, session_id: str) -> List[Dict[str, str]]:
-        config = {"configurable": {"thread_id": session_id}}
-        try:
-            state = self.app.get_state(config)
-            history_dicts = []
-            for message in state.messages:
-                history_dicts.append({"role": message.type, "content": message.content})
-            return history_dicts
-        except Exception as e:
-            logging.warning(f"Could not retrieve state for session {session_id}: {e}")
-            return []
-
-    def clear_context(self, session_id: str):
-        config = {"configurable": {"thread_id": session_id}}
-        try:
-            self.app.clear(config)
-            if self.use_kv_cache and hasattr(self.llm, 'reset_kv_cache'):
-                self.llm.reset_kv_cache()
-            logging.info(f"Cleared context and KV cache (if applicable) for session {session_id}.")
-        except Exception as e:
-            logging.error(f"Failed to clear context for session {session_id}: {e}")
-
+    @staticmethod
+    def _strip_special_tokens(text: str) -> str:
+        """Remove Llama chat template tags like <|...|>."""
+        import re
+        # Keep content after final assistant tag if present
+        if "<|assistant" in text or "assistant<|end_header_id|>" in text:
+            # split on the assistant header if present and take the last part
+            text = re.split(r"<\|start_header_id\|>assistant<\|end_header_id\|>", text)[-1]
+        # Remove all residual <|...|> patterns
+        text = re.sub(r"<\|[^>]+\|>", "", text)
+        return text.strip()
 
 class LangChainRAG(LangChainBase):
     """A LangChain implementation with Retrieval Augmented Generation (RAG) using LangGraph."""
@@ -185,38 +204,13 @@ class LangChainRAG(LangChainBase):
     def __init__(self, model_params: ModelParameters, **kwargs):
         super().__init__(model_params=model_params, **kwargs)
 
-        # Decentralized Validation for LangChainRAG (additional checks or overrides)
         model_version = model_params["model_version"]
         if model_version != "RAG":
             raise ValueError(f"Invalid model_version for LangChainRAG: '{model_version}'. Must be 'RAG'.")
-
-        # It inherits agent_framework, backend, model_name, and options validation from LangChainBase's super().__init__
         
         self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
         self.vectorstore = FAISS.from_texts([""], self.embeddings) 
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-
-        workflow = StateGraph(ChatState)
-        workflow.add_node("add_documents", self._add_documents_node)
-        workflow.add_node("retrieve", self._retrieve_node)
-        workflow.add_node("generate_response", self._generate_response_node)
-        workflow.add_node("base_chat_model", self._call_model_node)
-
-        workflow.set_entry_point("add_documents")
-        workflow.add_conditional_edges(
-            "add_documents",
-            self._route_to_rag_or_base,
-            {
-                "retrieve": "retrieve",
-                "base_chat": "base_chat_model"
-            }
-        )
-
-        workflow.add_edge("retrieve", "generate_response")
-        workflow.add_edge("generate_response", END)
-        workflow.add_edge("base_chat_model", END)
-
-        self.app = workflow.compile(checkpointer=self.checkpointer)
 
         self.history_aware_retriever_prompt = ChatPromptTemplate.from_messages([
             MessagesPlaceholder(variable_name="messages"),
@@ -284,25 +278,78 @@ class LangChainRAG(LangChainBase):
 
         return {"messages": [AIMessage(content=response)]}
 
-    def invoke(self, session_id: str, user_input: str, file_content: Optional[Union[str, List[str]]] = None) -> str:
-        config = {"configurable": {"thread_id": session_id}}
-        
-        input_messages = [HumanMessage(content=user_input)]
-        graph_input: ChatState = {
-            "messages": input_messages,
-            "file_contents": [], 
-            "rag_enabled": False 
-        }
+# --- Global LangGraph App Getters ---
 
-        if file_content:
-            if isinstance(file_content, str):
-                graph_input["file_contents"].append(file_content)
-            elif isinstance(file_content, list):
-                graph_input["file_contents"].extend(file_content)
-            else:
-                logging.warning(f"Unsupported file_content type in LangChainRAG invoke: {type(file_content)}. Ignoring.")
-
-        output = self.app.invoke(graph_input, config)
+def get_global_base_app(model_params: Optional[ModelParameters] = None) -> Any:
+    """Returns the single, globally compiled LangGraph application for the Base model."""
+    global _global_base_app
+    if _global_base_app is None:
+        logging.info("Initializing global Base LangGraph application.")
+        # Default model parameters for the global base app
+        if model_params is None:
+            model_params = {
+                "framework_type": "LangChain",
+                "backend": "HuggingFace",
+                "model_version": "Base",
+                "hf_params": {
+                    "model_name": "meta-llama/Llama-3.1-8B-Instruct", # Default to 8B with KV cache
+                    "use_kv_cache": True 
+                }
+            }
         
-        ai_message = output["messages"][-1]
-        return ai_message.content
+        base_llm_instance = LangChainBase(model_params=model_params)
+
+        workflow = StateGraph(ChatState)
+        workflow.add_node("call_model", base_llm_instance._call_model_node)
+        workflow.set_entry_point("call_model")
+        workflow.add_edge("call_model", END)
+        _global_base_app = workflow.compile(checkpointer=MemorySaver())
+        logging.info("Global Base LangGraph application initialized.")
+    return _global_base_app
+
+def get_global_rag_app(model_params: Optional[ModelParameters] = None) -> Any:
+    """Returns the single, globally compiled LangGraph application for the RAG model."""
+    global _global_rag_app
+    if _global_rag_app is None:
+        logging.info("Initializing global RAG LangGraph application.")
+        # Default model parameters for the global RAG app
+        if model_params is None:
+            model_params = {
+                "framework_type": "LangChain",
+                "backend": "HuggingFace",
+                "model_version": "RAG",
+                "hf_params": {
+                    "model_name": "meta-llama/Llama-3.1-8B-Instruct", # Default to 8B with KV cache for RAG also
+                    "use_kv_cache": True 
+                }
+            }
+        
+        rag_llm_instance = LangChainRAG(model_params=model_params)
+
+        workflow = StateGraph(ChatState)
+        workflow.add_node("add_documents", rag_llm_instance._add_documents_node)
+        workflow.add_node("retrieve", rag_llm_instance._retrieve_node)
+        workflow.add_node("generate_response", rag_llm_instance._generate_response_node)
+        workflow.add_node("base_chat_model", rag_llm_instance._call_model_node) # Can still use base chat logic in RAG
+
+        workflow.set_entry_point("add_documents")
+        workflow.add_conditional_edges(
+            "add_documents",
+            rag_llm_instance._route_to_rag_or_base,
+            {
+                "retrieve": "retrieve",
+                "base_chat": "base_chat_model"
+            }
+        )
+        workflow.add_edge("retrieve", "generate_response")
+        workflow.add_edge("generate_response", END)
+        workflow.add_edge("base_chat_model", END) # End of path if no RAG needed
+
+        _global_rag_app = workflow.compile(checkpointer=MemorySaver())
+        logging.info("Global RAG LangGraph application initialized.")
+    return _global_rag_app
+
+# --- Entry point for initial app setup (optional, can be done via http_api) ---
+# When the module is first imported, we might want to initialize the default base app
+# This is mainly for convenience and ensures an app is ready if no specific model parameters are provided
+# get_global_base_app() # Commented out: better to lazy load when first requested via API
