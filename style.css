@@ -7,7 +7,7 @@
     background-color: rgb(52, 52, 52);
     border: 2px solid grey;
   }
-  
+
 
   #logoimg {
     width: auto;
@@ -19,12 +19,13 @@
     margin-bottom: 3px;
   }
 
-  .workbench-container{
+  .workbench-container {
     display: flex;
     flex-direction: row;
   }
 
-  .workbench-nav, .workbench-tab {
+  .workbench-nav,
+  .workbench-tab {
     width: 40px;
     background-color: rgb(52, 52, 52);
     position: absolute;
@@ -36,46 +37,57 @@
     align-items: center;
     gap: 50px;
     padding-top: 30px;
-    
+
   }
 
-  .workbench-nav{
+  .workbench-nav {
     z-index: 99;
   }
 
-/* Slide in from the left */
-@keyframes slideInFromLeft {
-  from { left: -200px; }
-  to { left: 43px; }
-}
+  /* Slide in from the left */
+  @keyframes slideInFromLeft {
+    from {
+      left: -200px;
+    }
 
-/* Slide out to the left */
-@keyframes slideOutToLeft {
-  from{left: 43px;}
-  to{left: -200px;
-}}
+    to {
+      left: 43px;
+    }
+  }
 
+  /* Slide out to the left */
+  @keyframes slideOutToLeft {
+    from {
+      left: 43px;
+    }
 
-.workbench-tab {
-  position: absolute;
-  top: 0;
-  left: -200px;
-  width: 300px;
-  height: 100vh;
-  background-color: rgb(68, 68, 68);
-  z-index: 98; /* behind nav */
-  display: none;
-}
+    to {
+      left: -200px;
+    }
+  }
 
-/* Animation classes */
-.workbench-tab.animate-in {
-  display: block;
-  animation: slideInFromLeft 0.005s forwards;
-}
+  .workbench-tab {
+    position: absolute;
+    top: 0;
+    left: -200px;
+    width: 300px;
+    height: 100vh;
+    background-color: rgb(68, 68, 68);
+    z-index: 98;
+    display: none;
+    color: white;
+    padding: 35px 20px;
+  }
 
-.workbench-tab.animate-out {
-  animation: slideOutToLeft 0.005s forwards;
-}
+  /* Animation classes */
+  .workbench-tab.animate-in {
+    display: block;
+    animation: slideInFromLeft 0.005s forwards;
+  }
+
+  .workbench-tab.animate-out {
+    animation: slideOutToLeft 0.005s forwards;
+  }
 
   .icon-tooltip {
     position: relative;
@@ -308,36 +320,45 @@
     border-radius: 6px;
     font-size: 0.95rem;
   }
-.loader-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 20px 0;
-  user-select: none;
-}
 
-.spinner {
-  border: 6px solid #f3f3f3; /* Light gray */
-  border-top: 6px solid #007bff; /* Blue */
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 8px;
-}
+  .loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 20px 0;
+    user-select: none;
+  }
 
-.loading-text {
-  font-size: 10pt;
-  color: #007bff;
-  font-weight: 600;
-  text-align: center;
-}
+  .spinner {
+    border: 6px solid #f3f3f3;
+    /* Light gray */
+    border-top: 6px solid #007bff;
+    /* Blue */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 8px;
+  }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+  .loading-text {
+    font-size: 10pt;
+    color: #007bff;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
   #chat-controls {
     display: flex;
     gap: 0px;
@@ -405,7 +426,7 @@
     height: 100%;
   }
 
-  #chat-id{
+  #chat-id {
     display: flex;
     justify-content: flex-end;
     align-items: center;

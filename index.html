@@ -56,7 +56,7 @@
         <span class="tooltip-text">Manage Context</span>
       </div>
 
-      <div class="icon-tooltip">
+      <div id="view-chat-btn" class="icon-tooltip">
         <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-clock"
           viewBox="0 0 16 16">
           <path
@@ -154,6 +154,7 @@
     const chatBtn = document.getElementById('chat-btn');
     const chatSubmenu = document.getElementById('chat-submenu');
     const manageBtn = document.getElementById('manage-context-btn');
+    const viewBtn = document.getElementById('view-chat-btn');
     const workbenchTab = document.querySelector('.workbench-tab');
 
     let isOpen = false;
@@ -338,6 +339,39 @@
       isOpen = !isOpen;
     });
 
+    //sliding effect open workbench
+    viewBtn.addEventListener('click', () => {
+      if (!isOpen) {
+        workbenchTab.classList.remove('animate-out');
+        workbenchTab.style.display = 'block';
+        workbenchTab.classList.add('animate-in');
+      } else {
+        workbenchTab.classList.remove('animate-in');
+        workbenchTab.classList.add('animate-out');
+        setTimeout(() => {
+          workbenchTab.style.display = 'none';
+        }, 5);
+      }
+      isOpen = !isOpen;
+    });
+    // dynamically render workbench tabs 
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get all buttons with class 'icon-tooltip'
+      const buttons = document.querySelectorAll('.icon-tooltip');
+      // Get the tab container to update content
+      const tabContent = document.querySelector('.workbench-tab');
+
+      buttons.forEach(button => {
+        button.addEventListener('click', () => {
+          // Find the tooltip text inside the clicked button
+          const tooltip = button.querySelector('.tooltip-text');
+          if (tooltip) {
+            // Update the workbench-tab content with tooltip text
+            tabContent.textContent = tooltip.textContent;
+          }
+        });
+      });
+    });
 
     //model loading symbol 
     function showModelLoader() {
@@ -425,8 +459,7 @@
         tabBar.appendChild(tabElement);
       });
     }
-
-    // Switch tabs
+    //switch tabs
     function switchTab(tabId) {
       currentTabId = tabId;
 
@@ -440,8 +473,7 @@
 
       renderFileTabs();
     }
-
-    // Close file tab
+    //close file tab
     function closeTab(tabId) {
       // Find index of the tab to remove
       const index = tabs.findIndex(tab => tab.id === tabId);
