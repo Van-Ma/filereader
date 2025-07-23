@@ -131,6 +131,7 @@
   <!--page footer-->
   <div class="footer-container">
     <img src="images/logo.png">
+    <p id="chat-id"></p>
   </div>
 
 
@@ -167,72 +168,109 @@
     // Global to store current chat ID
     let currentChatId = null;
 
-    // Request new chat ID
+    // Function to request a new chat ID from backend
     async function requestNewChatId() {
       try {
+        // Always request a new ID — don't send old sessionId to force new creation
         const response = await fetch('http://127.0.0.1:5000/create_session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
+          body: JSON.stringify({})  // Empty body to create new session
         });
 
-        if (!response.ok) throw new Error('Failed to create chat session ID');
-
         const data = await response.json();
-        return data.chat_id;
+
+        if (response.ok && data.status === 'success' && data.chat_id) {
+          // Store new chat_id
+          localStorage.setItem('chat_id', data.chat_id);
+
+          // Update UI
+          const chatIdElement = document.getElementById('chat-id');
+          if (chatIdElement) {
+            chatIdElement.textContent = `Chat ID: ${data.chat_id}`;
+          }
+
+          window.currentChatId = data.chat_id;
+          return data.chat_id;
+        } else {
+          alert('Failed to create new chat session: ' + (data.error || 'Unknown error'));
+          return null;
+        }
       } catch (error) {
-        alert('Could not start a new chat session.');
+        alert('Error creating new chat session: ' + error.message);
         return null;
       }
     }
 
-    // Hook new chat button
+    // Run on page load: fetch stored or create new session
+    async function fetchAndStoreChatId() {
+      let storedChatId = localStorage.getItem('chat_id');
+      if (storedChatId) {
+        // Display existing ID
+        const chatIdElement = document.getElementById('chat-id');
+        if (chatIdElement) chatIdElement.textContent = `Chat ID: ${storedChatId}`;
+        window.currentChatId = storedChatId;
+      } else {
+        // No stored ID — request new one
+        await requestNewChatId();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchAndStoreChatId);
+
     document.getElementById('new-chat-btn').addEventListener('click', async () => {
+      // Ask user if they want to save changes before creating a new chat
+      const confirmSave = confirm("Do you want to save your changes before starting a new chat?");
+
+      if (confirmSave) {
+        // Implement your save logic here
+        // For example: await saveCurrentChat();
+        alert("Saving changes... (replace with actual save logic)");
+      }
+
+      // Close the current tab/session whatever you have for cleanup
       closeTab(currentTabId);
       document.getElementById("file-name-display").textContent = '';
 
       const newId = await requestNewChatId();
       if (newId) {
         currentChatId = newId;
-        alert(`New chat session created!\nChat ID: ${currentChatId}`);
-        // Clear your chat UI here as needed
       }
     });
 
-    // Hook save chat button
-    document.getElementById('save-chat-btn').addEventListener('click', async () => {
-      if (!currentChatId) {
-        alert('No active chat session. Please start a new chat first.');
-        return;
-      }
 
-      const messages = [
-        { role: 'user', content: 'Hello!' },
-        { role: 'assistant', content: 'Hi there!' }
+    document.getElementById("save-chat-btn").addEventListener("click", () => {
+      const chatId = "test_session_001";
+
+      const chatMessages = [
+        { sender: "user", message: "Hi there!", timestamp: "2025-07-23T19:00:00" },
+        { sender: "ai", message: "Hello! How can I assist you?", timestamp: "2025-07-23T19:00:01" },
+        { sender: "user", message: "Tell me a joke.", timestamp: "2025-07-23T19:00:05" },
+        { sender: "ai", message: "Why don't scientists trust atoms? Because they make up everything!", timestamp: "2025-07-23T19:00:06" }
       ];
-      const context = ['example context'];
 
-      try {
-        const res = await fetch('http://127.0.0.1:5000/save_session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: currentChatId, messages, context })
+      fetch('http://localhost:5000/save_chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: chatId,
+          messages: chatMessages
+        }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Chat saved:", data);
+          if (data.status === "success") {
+            alert(`Chat saved successfully as ${data.filename}`);
+          } else {
+            alert("Failed to save chat: " + data.message);
+          }
+        })
+        .catch(err => {
+          console.error("Save failed:", err);
+          alert("An error occurred while saving the chat.");
         });
-
-        const result = await res.json();
-
-        if (res.ok) {
-          // Show saved JSON in output box for testing
-          document.getElementById('output-box').textContent =
-            JSON.stringify(result.content, null, 2);
-        } else {
-          alert('Error: ' + result.error);
-        }
-      } catch (err) {
-        alert('Error saving session: ' + err.message);
-      }
     });
-
     // Show the loader (call when model loading starts)
     function showModelLoader() {
       document.getElementById('model-loader').style.display = 'flex';
@@ -335,6 +373,8 @@
     let tabs = [];
     let currentTabId = null;
 
+
+    //handle different file types
     async function handlePdf(file) {
       const reader = new FileReader();
 
@@ -376,11 +416,9 @@
       reader.readAsArrayBuffer(file);
     }
 
-    function createSessionId() {
-      return new Date().toISOString().replace(/[-:.TZ]/g, '') + Math.floor(Math.random() * 1000);
-    }
 
-    // Call /select_model to set the model for the session (hardcoded to LangChainKVCache)
+
+    // Call /select_model to set the model for the session 
     async function selectModelForSession() {
       try {
         // Get the selected model value from the dropdown
@@ -405,22 +443,8 @@
       }
     }
 
-    // Create new tab and select model for session
     async function createTab(fileName, fileText) {
-      const id = Date.now().toString();
-      const sessionId = createSessionId();
-      tabs.push({
-        id,
-        sessionId,
-        name: fileName,
-        content: fileText,
-        chatHistory: [],
-        modelSelected: false,
-        model: modelSelect.ariaValueMax
-      });
-
-      renderTabs();
-      switchTab(id);
+    
     }
 
     function handleFile(file) {
@@ -482,23 +506,6 @@
       renderTabs();
     }
 
-    async function deleteSessionOnServer(sessionId) {
-      try {
-        const response = await fetch('http://127.0.0.1:5000/delete_session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId })
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.error || 'Failed to delete session');
-        }
-        console.log(`Session ${sessionId} deleted on server.`);
-      } catch (error) {
-        console.warn(`Error deleting session ${sessionId}:`, error);
-      }
-    }
-
     function closeTab(id) {
       const idx = tabs.findIndex(t => t.id === id);
       if (idx === -1) return;
@@ -519,132 +526,6 @@
       renderTabs();
       document.getElementById("file-name-display").textContent = '';
     }
-
-    // Chat history rendering
-    function renderChatHistory(history) {
-      chatOutput.innerHTML = '';
-      history.forEach(({ message, isUser }) => {
-        appendMessageToChatOutput(message, isUser);
-      });
-      chatOutput.scrollTop = chatOutput.scrollHeight;
-    }
-
-    function appendMessageToChatOutput(message, isUser) {
-      const msgDiv = document.createElement('div');
-      msgDiv.style.textAlign = isUser ? 'right' : 'left';
-      msgDiv.style.margin = '6px 0';
-
-      const p = document.createElement('p');
-      p.textContent = message;
-      p.style.display = 'inline-block';
-      p.style.padding = '8px 12px';
-      p.style.borderRadius = '8px';
-      p.style.maxWidth = '70%';
-      p.style.backgroundColor = isUser ? '#007bff' : '#eee';
-      p.style.color = isUser ? 'white' : 'black';
-
-      msgDiv.appendChild(p);
-      chatOutput.appendChild(msgDiv);
-      chatOutput.scrollTop = chatOutput.scrollHeight;
-    }
-
-    function addMessageToCurrentChat(message, isUser) {
-      if (!currentTabId) return;
-      const tab = tabs.find(t => t.id === currentTabId);
-      if (!tab) return;
-      tab.chatHistory.push({ message, isUser });
-      appendMessageToChatOutput(message, isUser);
-    }
-    // Drag & drop handlers
-    dropArea.addEventListener('click', () => fileInput.click());
-
-    dropArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropArea.classList.add('dragover');
-    });
-    dropArea.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      dropArea.classList.remove('dragover');
-    });
-    dropArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropArea.classList.remove('dragover');
-      if (e.dataTransfer.files.length > 0) {
-        handleFile(e.dataTransfer.files[0]);
-      }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      if (fileInput.files.length > 0) {
-        handleFile(fileInput.files[0]);
-      }
-    });
-
-    // Send message to backend AI
-    async function sendMessageToBot(userInput) {
-      if (!currentTabId) {
-        alert('Please upload a file first!');
-        return;
-      }
-      const tab = tabs.find(t => t.id === currentTabId);
-      if (!tab) {
-        alert('Invalid tab selected!');
-        return;
-      }
-      if (!tab.modelSelected) {
-        alert('Model not ready yet for this session. Please wait.');
-        return;
-      }
-      if (!tab.content.trim()) {
-        alert('File content is empty!');
-        return;
-      }
-
-      addMessageToCurrentChat(userInput, true);
-      addMessageToCurrentChat('🤖...', false);
-
-      try {
-        const response = await fetch('http://127.0.0.1:5000/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: tab.sessionId,
-            message: userInput,
-            fileContent: tab.content
-          })
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
-
-        // Replace last bot "thinking" message with actual response
-        tab.chatHistory.pop();
-        chatOutput.lastChild.remove();
-
-        addMessageToCurrentChat(data.response || '(No response)', false);
-      } catch (err) {
-        // Replace last bot "thinking" message with error
-        tab.chatHistory.pop();
-        chatOutput.lastChild.remove();
-
-        addMessageToCurrentChat(`❌ Error: ${err.message}`, false);
-      }
-    }
-
-    // Send prompt
-    function sendPrompt() {
-      const prompt = aiInput.value.trim();
-      if (!prompt) return;
-      aiInput.value = '';
-      sendMessageToBot(prompt);
-    }
-
-    sendButton.addEventListener('click', sendPrompt);
-    aiInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        sendPrompt();
-      }
-    });
 
   </script>
 </body>
