@@ -144,11 +144,8 @@
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
     const fileContentDiv = document.getElementById('file-content');
-    const chatOutput = document.getElementById('chat-output');
-    const aiInput = document.getElementById('ai-input');
     const sendButton = document.getElementById('ai-send');
     const tabBar = document.getElementById('tab-bar');
-    const modelSelect = document.getElementById('model-select');
     const fileBtn = document.getElementById('file-btn');
     const fileSubmenu = document.getElementById('file-submenu');
     const chatBtn = document.getElementById('chat-btn');
@@ -497,6 +494,16 @@
       renderFileTabs();
       renderFileContent();
     }
+
+    //chat functionality
+    function appendMessage(text, sender = 'user') {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = sender === 'user' ? 'user-msg' : 'ai-msg';
+      msgDiv.textContent = text;
+      chatOutput.appendChild(msgDiv);
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+  
   </script>
   <script src="http_service.js" type="module"></script>
 </body>
