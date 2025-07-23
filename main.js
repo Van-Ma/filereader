@@ -60,6 +60,7 @@ async function parseFile(filePath) {
   }
 }
 
+
 // Handle file parsing request from renderer
 ipcMain.handle('parse-file', async (event, filePath) => {
   if (!fs.existsSync(filePath)) {

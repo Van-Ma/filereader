@@ -36,48 +36,52 @@
 
   <!--workbench-->
   <div class="workbench-container">
+    <div class="workbench-nav">
+      <div id="new-chat-btn" class="icon-tooltip">
+        <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-plus-circle"
+          viewBox="0 0 16 16">
+          <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+          <path
+            d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+        </svg>
+        <span class="tooltip-text">New Chat</span>
+      </div>
 
-    <div id="new-chat-btn" class="icon-tooltip">
-      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-plus-circle"
-        viewBox="0 0 16 16">
-        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-        <path
-          d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
-      </svg>
-      <span class="tooltip-text">New Chat</span>
-    </div>
+      <div id="manage-context-btn" class="icon-tooltip">
+        <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-archive"
+          viewBox="0 0 16 16">
+          <path
+            d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+        </svg>
+        <span class="tooltip-text">Manage Context</span>
+      </div>
 
-    <div class="icon-tooltip">
-      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-archive"
-        viewBox="0 0 16 16">
-        <path
-          d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
-      </svg>
-      <span class="tooltip-text">Manage Context</span>
-    </div>
+      <div class="icon-tooltip">
+        <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-clock"
+          viewBox="0 0 16 16">
+          <path
+            d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z" />
+          <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z" />
+          <path
+            d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5" />
+        </svg>
+        <span class="tooltip-text">View Chat History</span>
+      </div>
 
-    <div class="icon-tooltip">
-      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-clock"
-        viewBox="0 0 16 16">
-        <path
-          d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z" />
-        <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z" />
-        <path
-          d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5" />
-      </svg>
-      <span class="tooltip-text">View Chat History</span>
-    </div>
-
-    <div id="save-chat-btn" class="icon-tooltip">
-      <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-floppy"
-        viewBox="0 0 16 16">
-        <path d="M11 2H9v3h2z" />
-        <path
-          d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z" />
-      </svg>
-      <span class="tooltip-text">Save Chat</span>
+      <div id="save-chat-btn" class="icon-tooltip">
+        <svg xmlns="http://www.w3.org/2000/svg" width="50%" height="auto" fill="#dcedff" class="bi bi-floppy"
+          viewBox="0 0 16 16">
+          <path d="M11 2H9v3h2z" />
+          <path
+            d="M1.5 0h11.586a1.5 1.5 0 0 1 1.06.44l1.415 1.414A1.5 1.5 0 0 1 16 2.914V14.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5v-13A1.5 1.5 0 0 1 1.5 0M1 1.5v13a.5.5 0 0 0 .5.5H2v-4.5A1.5 1.5 0 0 1 3.5 9h9a1.5 1.5 0 0 1 1.5 1.5V15h.5a.5.5 0 0 0 .5-.5V2.914a.5.5 0 0 0-.146-.353l-1.415-1.415A.5.5 0 0 0 13.086 1H13v4.5A1.5 1.5 0 0 1 11.5 7h-7A1.5 1.5 0 0 1 3 5.5V1H1.5a.5.5 0 0 0-.5.5m3 4a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 .5-.5V1H4zM3 15h10v-4.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5z" />
+        </svg>
+        <span class="tooltip-text">Save Chat</span>
+      </div>
+      <div class="workbench-tab">
+      </div>
     </div>
   </div>
+
 
   <!--main page-->
   <div class="page-layout">
@@ -149,232 +153,16 @@
     const fileSubmenu = document.getElementById('file-submenu');
     const chatBtn = document.getElementById('chat-btn');
     const chatSubmenu = document.getElementById('chat-submenu');
+    const manageBtn = document.getElementById('manage-context-btn');
+    const workbenchTab = document.querySelector('.workbench-tab');
 
-    //navigation submenu tabs 
-    document.getElementById("exit-tab-btn").addEventListener("click", function () {
-      window.close();
-    });
-    document.getElementById('new-tab-btn').addEventListener('click', () => {
-      fileInput.click();
-    });
-    // Close submenu when clicking outside
-    document.addEventListener('click', () => {
-      if (activeSubmenu) {
-        activeSubmenu.style.display = 'none';
-        activeSubmenu = null;
-      }
-    });
-
-    // Global to store current chat ID
-    let currentChatId = null;
-
-    // Function to request a new chat ID from backend
-    async function requestNewChatId() {
-      try {
-        // Always request a new ID — don't send old sessionId to force new creation
-        const response = await fetch('http://127.0.0.1:5000/create_session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})  // Empty body to create new session
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.status === 'success' && data.chat_id) {
-          // Store new chat_id
-          localStorage.setItem('chat_id', data.chat_id);
-
-          // Update UI
-          const chatIdElement = document.getElementById('chat-id');
-          if (chatIdElement) {
-            chatIdElement.textContent = `Chat ID: ${data.chat_id}`;
-          }
-
-          window.currentChatId = data.chat_id;
-          return data.chat_id;
-        } else {
-          alert('Failed to create new chat session: ' + (data.error || 'Unknown error'));
-          return null;
-        }
-      } catch (error) {
-        alert('Error creating new chat session: ' + error.message);
-        return null;
-      }
-    }
-
-    // Run on page load: fetch stored or create new session
-    async function fetchAndStoreChatId() {
-      let storedChatId = localStorage.getItem('chat_id');
-      if (storedChatId) {
-        // Display existing ID
-        const chatIdElement = document.getElementById('chat-id');
-        if (chatIdElement) chatIdElement.textContent = `Chat ID: ${storedChatId}`;
-        window.currentChatId = storedChatId;
-      } else {
-        // No stored ID — request new one
-        await requestNewChatId();
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', fetchAndStoreChatId);
-
-    document.getElementById('new-chat-btn').addEventListener('click', async () => {
-      // Ask user if they want to save changes before creating a new chat
-      const confirmSave = confirm("Do you want to save your changes before starting a new chat?");
-
-      if (confirmSave) {
-        // Implement your save logic here
-        // For example: await saveCurrentChat();
-        alert("Saving changes... (replace with actual save logic)");
-      }
-
-      // Close the current tab/session whatever you have for cleanup
-      closeTab(currentTabId);
-      document.getElementById("file-name-display").textContent = '';
-
-      const newId = await requestNewChatId();
-      if (newId) {
-        currentChatId = newId;
-      }
-    });
-
-
-    document.getElementById("save-chat-btn").addEventListener("click", () => {
-      const chatId = "test_session_001";
-
-      const chatMessages = [
-        { sender: "user", message: "Hi there!", timestamp: "2025-07-23T19:00:00" },
-        { sender: "ai", message: "Hello! How can I assist you?", timestamp: "2025-07-23T19:00:01" },
-        { sender: "user", message: "Tell me a joke.", timestamp: "2025-07-23T19:00:05" },
-        { sender: "ai", message: "Why don't scientists trust atoms? Because they make up everything!", timestamp: "2025-07-23T19:00:06" }
-      ];
-
-      fetch('http://localhost:5000/save_chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: chatId,
-          messages: chatMessages
-        }),
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log("Chat saved:", data);
-          if (data.status === "success") {
-            alert(`Chat saved successfully as ${data.filename}`);
-          } else {
-            alert("Failed to save chat: " + data.message);
-          }
-        })
-        .catch(err => {
-          console.error("Save failed:", err);
-          alert("An error occurred while saving the chat.");
-        });
-    });
-    // Show the loader (call when model loading starts)
-    function showModelLoader() {
-      document.getElementById('model-loader').style.display = 'flex';
-    }
-
-    // Hide the loader (call when model is ready)
-    function hideModelLoader() {
-      document.getElementById('model-loader').style.display = 'none';
-    }
-
-
-    let activeSubmenu = null;
-
-    // Toggle submenu visibility
-    function toggleSubmenu(button, submenu) {
-      if (activeSubmenu && activeSubmenu !== submenu) {
-        activeSubmenu.style.display = 'none';
-      }
-
-      const isVisible = submenu.style.display === 'block';
-      submenu.style.display = isVisible ? 'none' : 'block';
-      activeSubmenu = submenu.style.display === 'block' ? submenu : null;
-    }
-
-    // Handle file button click
-    fileBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      fileBtn.classList.add("active");
-      chatBtn.classList.remove("active");
-      toggleSubmenu(fileBtn, fileSubmenu);
-    });
-
-    // Handle chat button click
-    chatBtn.addEventListener('click', (event) => {
-      event.stopPropagation();
-      chatBtn.classList.add("active");
-      fileBtn.classList.remove("active");
-      toggleSubmenu(chatBtn, chatSubmenu);
-    });
-
-
-
-    // Prevent closing when clicking inside submenus
-    fileSubmenu.addEventListener('click', (event) => event.stopPropagation());
-    chatSubmenu.addEventListener('click', (event) => event.stopPropagation());
-
-    let previousModelValue = modelSelect.value;
-    modelSelect.addEventListener('change', async () => {
-      // Remove the check for currentTabId and alert
-
-      // Find the current tab if any (might be null)
-      const tab = currentTabId ? tabs.find(t => t.id === currentTabId) : null;
-
-      const newModelValue = modelSelect.value;
-
-      const confirmSwitch = confirm(
-        `Switch to model:\n"${newModelValue}"?\n\nThis will start a new chat and delete chat history.`
-      );
-
-      if (!confirmSwitch) {
-        modelSelect.value = previousModelValue;
-        return;
-      }
-
-      if (tab) {
-        // If a tab exists, reset session and chat history
-        tab.sessionId = createSessionId();
-        tab.chatHistory = [];
-        tab.modelSelected = false;
-        chatOutput.innerHTML = '';
-        tab.model = newModelValue;
-      }
-
-      // Show loader while backend selects model
-      showModelLoader();
-
-      // Call backend to select new model
-      const success = await selectModelForSession();
-
-      // Hide loader when done
-      hideModelLoader();
-
-      if (success) {
-        if (tab) tab.modelSelected = true;
-        previousModelValue = newModelValue;
-
-        console.log(`✅ Switched to model: ${newModelValue}`);
-
-        aiInput.disabled = false;
-        aiInput.focus();
-
-      } else {
-        modelSelect.value = previousModelValue;
-        alert('Failed to switch model. Reverting selection.');
-      }
-    });
-
-
-
+    let isOpen = false;
     let tabs = [];
     let currentTabId = null;
+    let currentChatId = null;
+    let activeSubmenu = null;
 
-
-    //handle different file types
+    //handle file types
     async function handlePdf(file) {
       const reader = new FileReader();
 
@@ -416,37 +204,6 @@
       reader.readAsArrayBuffer(file);
     }
 
-
-
-    // Call /select_model to set the model for the session 
-    async function selectModelForSession() {
-      try {
-        // Get the selected model value from the dropdown
-        const modelSelect = document.getElementById('model-select');
-        const selectedModel = modelSelect.value;
-
-        const response = await fetch('http://127.0.0.1:5000/select_model', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            modelType: selectedModel // use selected option's value here
-          })
-        });
-
-        if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
-        const data = await response.json();
-        console.log(`Model selected for session:`, data);
-        return true;
-      } catch (err) {
-        console.error('Error selecting model:', err);
-        return false;
-      }
-    }
-
-    async function createTab(fileName, fileText) {
-    
-    }
-
     function handleFile(file) {
       const ext = file.name.split('.').pop().toLowerCase();
 
@@ -466,68 +223,250 @@
       }
     }
 
-    function renderTabs() {
-      tabBar.innerHTML = '';
+    //handle nav menu button event
+    fileBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      fileBtn.classList.add("active");
+      chatBtn.classList.remove("active");
+      toggleSubmenu(fileBtn, fileSubmenu);
+    });
+
+    chatBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      chatBtn.classList.add("active");
+      fileBtn.classList.remove("active");
+      toggleSubmenu(chatBtn, chatSubmenu);
+    });
+    //navigation submenu tabs 
+    document.getElementById("exit-tab-btn").addEventListener("click", function () {
+      window.close();
+    });
+    document.getElementById('new-tab-btn').addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Close submenu when clicking only outside
+    document.addEventListener('click', () => {
+      if (activeSubmenu) {
+        activeSubmenu.style.display = 'none';
+        activeSubmenu = null;
+      }
+    });
+    fileSubmenu.addEventListener('click', (event) => event.stopPropagation());
+    chatSubmenu.addEventListener('click', (event) => event.stopPropagation());
+
+    // Toggle submenu visibility
+    function toggleSubmenu(button, submenu) {
+      if (activeSubmenu && activeSubmenu !== submenu) {
+        activeSubmenu.style.display = 'none';
+      }
+
+      const isVisible = submenu.style.display === 'block';
+      submenu.style.display = isVisible ? 'none' : 'block';
+      activeSubmenu = submenu.style.display === 'block' ? submenu : null;
+    }
+
+
+    //workbench nav button event click
+    document.getElementById('new-chat-btn').addEventListener('click', async () => {
+      // Ask user if they want to save changes before creating a new chat
+      const confirmSave = confirm("Do you want to save your changes before starting a new chat?");
+
+      if (confirmSave) {
+        // Implement your save logic here
+        // For example: await saveCurrentChat();
+        alert("Saving changes... (replace with actual save logic)");
+      }
+
+      // Close the current tab/session whatever you have for cleanup
+      closeTab(currentTabId);
+      document.getElementById("file-name-display").textContent = '';
+
+      const newId = await requestNewChatId();
+      if (newId) {
+        currentChatId = newId;
+      }
+    });
+
+    document.getElementById("save-chat-btn").addEventListener("click", () => {
+      const chatId = "test_session_001";
+
+      const chatMessages = [
+        { sender: "user", message: "Hi there!", timestamp: "2025-07-23T19:00:00" },
+        { sender: "ai", message: "Hello! How can I assist you?", timestamp: "2025-07-23T19:00:01" },
+        { sender: "user", message: "Tell me a joke.", timestamp: "2025-07-23T19:00:05" },
+        { sender: "ai", message: "Why don't scientists trust atoms? Because they make up everything!", timestamp: "2025-07-23T19:00:06" }
+      ];
+
+      fetch('http://localhost:5000/save_chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatId: chatId,
+          messages: chatMessages
+        }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Chat saved:", data);
+          if (data.status === "success") {
+            alert(`Chat saved successfully as ${data.filename}`);
+          } else {
+            alert("Failed to save chat: " + data.message);
+          }
+        })
+        .catch(err => {
+          console.error("Save failed:", err);
+          alert("An error occurred while saving the chat.");
+        });
+    });
+
+
+    //sliding effect open workbench
+    manageBtn.addEventListener('click', () => {
+      if (!isOpen) {
+        workbenchTab.classList.remove('animate-out');
+        workbenchTab.style.display = 'block';
+        workbenchTab.classList.add('animate-in');
+      } else {
+        workbenchTab.classList.remove('animate-in');
+        workbenchTab.classList.add('animate-out');
+        setTimeout(() => {
+          workbenchTab.style.display = 'none';
+        }, 5);
+      }
+      isOpen = !isOpen;
+    });
+
+
+    //model loading symbol 
+    function showModelLoader() {
+      document.getElementById('model-loader').style.display = 'flex';
+    }
+    function hideModelLoader() {
+      document.getElementById('model-loader').style.display = 'none';
+    }
+
+    // Drag & drop events
+    dropArea.addEventListener('click', () => fileInput.click());
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
+    dropArea.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+    });
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (fileInput.files.length > 0) {
+        handleFile(fileInput.files[0]);
+        fileInput.value = '';  // <-- reset so user can select same file again
+      }
+    });
+
+    //create tab 
+    function createTab(fileName, fileText = '') {
+      const existingTab = tabs.find(tab => tab.name === fileName);
+      if (existingTab) {
+        switchTab(existingTab.id); // Don't open a new tab, just switch
+        return;
+      }
+
+      const fileId = Date.now().toString();
+
+      const newTab = {
+        id: fileId,
+        name: fileName,
+        content: fileText,
+      };
+
+      tabs.push(newTab);
+      currentTabId = fileId;
+
+      renderFileTabs();
+      switchTab(fileId);
+    }
+    //render tab
+    function renderFileTabs() {
+      const tabBar = document.getElementById('tab-bar');
+      tabBar.innerHTML = ''; // Clear existing tabs
+
       tabs.forEach(tab => {
-        const tabEl = document.createElement('div');
-        tabEl.className = 'tab' + (tab.id === currentTabId ? ' active' : '');
-        tabEl.textContent = tab.name;
-        tabEl.dataset.id = tab.id;
+        const tabElement = document.createElement('div');
+        tabElement.classList.add('tab');
+        if (tab.id === currentTabId) {
+          tabElement.classList.add('active');
+        }
+        tabElement.textContent = tab.name;
 
         // Close button
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '×';
-        closeBtn.className = 'close-btn';
-        closeBtn.onclick = e => {
+        closeBtn.classList.add('close-btn');
+        closeBtn.onclick = (e) => {
           e.stopPropagation();
           closeTab(tab.id);
         };
-        tabEl.appendChild(closeBtn);
 
-        tabEl.onclick = () => switchTab(tab.id);
+        tabElement.appendChild(closeBtn);
 
-        tabBar.appendChild(tabEl);
+        // Tab click to switch
+        tabElement.onclick = () => {
+          switchTab(tab.id);
+        };
+
+        tabBar.appendChild(tabElement);
       });
     }
 
     // Switch tabs
-    function switchTab(id) {
-      currentTabId = id;
-      const tab = tabs.find(t => t.id === id);
+    function switchTab(tabId) {
+      currentTabId = tabId;
+
+      const tab = tabs.find(t => t.id === tabId);
       if (!tab) return;
 
-      fileContentDiv.textContent = tab.content || 'File is empty.';
+      document.getElementById("file-name-display").textContent = tab.name;
 
-      const fileNameDisplay = document.getElementById('file-name-display');
-      fileNameDisplay.textContent = tab.name;
+      const fileContentDiv = document.getElementById("file-content");
+      fileContentDiv.textContent = tab.content;
 
-      renderChatHistory(tab.chatHistory);
-      aiInput.value = '';
-      renderTabs();
+      renderFileTabs();
     }
 
-    function closeTab(id) {
-      const idx = tabs.findIndex(t => t.id === id);
-      if (idx === -1) return;
+    // Close file tab
+    function closeTab(tabId) {
+      // Find index of the tab to remove
+      const index = tabs.findIndex(tab => tab.id === tabId);
+      if (index === -1) return;
 
-      // Call backend to delete session
-      deleteSessionOnServer(tabs[idx].sessionId);
+      tabs.splice(index, 1); // Remove tab
 
-      tabs.splice(idx, 1);
-      if (currentTabId === id) {
+      // If the closed tab was active, switch to another tab
+      if (tabId === currentTabId) {
         if (tabs.length > 0) {
-          switchTab(tabs[Math.max(idx - 1, 0)].id);
+          // Prefer previous tab, or first one if none before
+          const newIndex = index > 0 ? index - 1 : 0;
+          currentTabId = tabs[newIndex].id;
         } else {
-          currentTabId = null;
-          fileContentDiv.textContent = 'No file loaded yet.';
-          chatOutput.innerHTML = '';
+          currentTabId = null; // No tabs left
+          document.getElementById('file-content').textContent = '';
+          document.getElementById("file-name-display").textContent = ''; // Clear file name
         }
       }
-      renderTabs();
-      document.getElementById("file-name-display").textContent = '';
-    }
 
+      renderFileTabs();
+      renderFileContent();
+    }
   </script>
+  <script src="http_service.js" type="module"></script>
 </body>
 
 </html>
