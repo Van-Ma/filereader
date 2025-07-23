@@ -15,22 +15,23 @@ ENDPOINTS = {
     "delete_session": "/delete_session"
 }
 
-def create_session(base_url: str, session_id: str, model_parameters: Dict[str, Any]) -> bool:
+def create_session(base_url: str, model_parameters: Dict[str, Any]) -> str:
     """Sends a request to create a new session with specified model parameters."""
-    print(f"--> Creating session {session_id} with model parameters: {json.dumps(model_parameters, indent=2)}...")
+    print("--> Creating new session with model parameters:")
+    print(json.dumps(model_parameters, indent=2))
     payload = {
-        "sessionId": session_id,
         "modelParameters": model_parameters
     }
     try:
         url = f"{base_url}{ENDPOINTS['create_session']}"
         response = requests.post(url, json=payload, timeout=30)
         if response.status_code == 200:
-            print(f"<-- Success: {response.json().get('message')}")
-            return True
+            session_id = response.json().get("sessionId")
+            print(f"<-- Success. Session ID = {session_id}")
+            return session_id
         else:
             print(f"<-- Error ({response.status_code}): {response.text}")
-            return False
+            return None
     except requests.exceptions.RequestException as e:
         print(f"<-- API Connection Error: {e}")
         return False
@@ -111,7 +112,18 @@ def main():
     )
     args = parser.parse_args()
 
-    session_id = str(uuid.uuid4())
+    session_id = create_session(args.base_url, {
+        "framework_type": args.framework_type,
+        "backend": args.backend,
+        "model_version": args.model_version,
+        "hf_params": {
+            "model_name": args.model_name,
+            "use_kv_cache": args.use_kv_cache
+        }
+    })
+    if not session_id:
+        print("Failed to create session. Exiting.")
+        sys.exit(1)
     file_content = None
 
     # Read file content if provided
@@ -126,24 +138,6 @@ def main():
         except Exception as e:
             print(f"Error reading file: {e}. Exiting.")
             sys.exit(1)
-
-    # Construct ModelParameters dictionary
-    model_parameters = {
-        "framework_type": args.framework_type,
-        "backend": args.backend,
-        "model_version": args.model_version,
-        "hf_params": {
-            "model_name": args.model_name,
-            "use_kv_cache": args.use_kv_cache
-        }
-    }
-
-    if not create_session(args.base_url, session_id, model_parameters):
-        print("Failed to create session with model. Exiting.")
-        sys.exit(1)
-    else: print("Session created successfully with specified model.")
-    print("session_id: ", session_id)
-
 
     print("\n--- Chat Session Started ---")
     print("Type 'quit' or 'exit' to end the session.")
