@@ -279,7 +279,7 @@
         alert("Saving changes... (replace with actual save logic)");
       }
 
-      // Close the current tab/session whatever you have for cleanup
+      // Close the current tab/chat whatever you have for cleanup
       closeTab(currentTabId);
       document.getElementById("file-name-display").textContent = '';
 
@@ -290,7 +290,7 @@
     });
 
     document.getElementById("save-chat-btn").addEventListener("click", () => {
-      const chatId = "test_session_001";
+      const chatId = "test_chat_001";
 
       const chatMessages = [
         { sender: "user", message: "Hi there!", timestamp: "2025-07-23T19:00:00" },

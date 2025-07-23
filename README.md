@@ -74,22 +74,22 @@ Selects and initializes the global model instance. **This must be called before 
   ```
 
 #### `/chat` (POST)
-Sends a message to the selected global model for a session. The session ID is used to manage conversation context.
+Sends a message to the selected global model for a chat. The chat ID is used to manage conversation context.
 - **Body (JSON):**
   ```json
   {
-    "sessionId": "some-unique-user-id",
+    "chatId": "some-unique-user-id",
     "message": "Hello, what is your name?",
     "fileContent": "Optional: The full text of a document."
   }
   ```
 
-#### `/delete_session` (POST)
-Deletes a session and releases its context from memory.
+#### `/delete_chat` (POST)
+Deletes a chat and releases its context from memory.
 - **Body (JSON):**
   ```json
   {
-    "sessionId": "some-unique-user-id"
+    "chatId": "some-unique-user-id"
   }
   ```
 

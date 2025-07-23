@@ -10,25 +10,25 @@ from typing import Dict, Any # Import Dict and Any for type hints
 
 ENDPOINTS = {
     "change_model": "/change_model", # Switches global model
-    "create_session": "/create_session",
+    "create_chat": "/create_chat",
     "chat": "/chat",
-    "delete_session": "/delete_session"
+    "delete_chat": "/delete_chat"
 }
 
-def create_session(base_url: str, model_parameters: Dict[str, Any]) -> str:
-    """Sends a request to create a new session with specified model parameters."""
-    print("--> Creating new session with model parameters:")
+def create_chat(base_url: str, model_parameters: Dict[str, Any]) -> str:
+    """Sends a request to create a new chat with specified model parameters."""
+    print("--> Creating new chat with model parameters:")
     print(json.dumps(model_parameters, indent=2))
     payload = {
         "modelParameters": model_parameters
     }
     try:
-        url = f"{base_url}{ENDPOINTS['create_session']}"
+        url = f"{base_url}{ENDPOINTS['create_chat']}"
         response = requests.post(url, json=payload, timeout=30)
         if response.status_code == 200:
-            session_id = response.json().get("sessionId")
-            print(f"<-- Success. Session ID = {session_id}")
-            return session_id
+            chat_id = response.json().get("chatId")
+            print(f"<-- Success. Chat ID = {chat_id}")
+            return chat_id
         else:
             print(f"<-- Error ({response.status_code}): {response.text}")
             return None
@@ -36,13 +36,13 @@ def create_session(base_url: str, model_parameters: Dict[str, Any]) -> str:
         print(f"<-- API Connection Error: {e}")
         return False
 
-def chat(base_url: str, session_id: str, message: str, file_content: str = None) -> str:
+def chat(base_url: str, chat_id: str, message: str, file_content: str = None) -> str:
     """Sends a message to the chat endpoint and returns the bot's response."""
     payload = {
-        "sessionId": session_id,
+        "chatId": chat_id,
         "message": message
     }
-    print("chatting session_id: ", session_id)
+    print("chatting chat_id: ", chat_id)
     if file_content:
         payload["fileContent"] = file_content
     
@@ -56,12 +56,12 @@ def chat(base_url: str, session_id: str, message: str, file_content: str = None)
     except requests.exceptions.RequestException as e:
         return f"API Connection Error: {e}"
 
-def delete_session(base_url: str, session_id: str):
-    """Sends a request to delete the session and free up resources."""
-    print(f"--> Deleting session {session_id}...")
-    payload = {"sessionId": session_id}
+def delete_chat(base_url: str, chat_id: str):
+    """Sends a request to delete the chat and free up resources."""
+    print(f"--> Deleting chat {chat_id}...")
+    payload = {"chatId": chat_id}
     try:
-        url = f"{base_url}{ENDPOINTS['delete_session']}"
+        url = f"{base_url}{ENDPOINTS['delete_chat']}"
         response = requests.post(url, json=payload, timeout=30)
         if response.status_code == 200:
             print(f"<-- Success: {response.json().get('message')}")
@@ -124,11 +124,11 @@ def main():
     parser.add_argument(
         "--file",
         default=None,
-        help="Optional path to a text file to use as context for the chat session."
+        help="Optional path to a text file to use as context for the chat."
     )
     args = parser.parse_args()
 
-    session_id = create_session(args.base_url, {
+    chat_id = create_chat(args.base_url, {
         "framework_type": args.framework_type,
         "backend": args.backend,
         "model_version": args.model_version,
@@ -137,8 +137,8 @@ def main():
             "use_kv_cache": args.use_kv_cache
         }
     })
-    if not session_id:
-        print("Failed to create session. Exiting.")
+    if not chat_id:
+        print("Failed to create chat. Exiting.")
         sys.exit(1)
     file_content = None
 
@@ -155,8 +155,8 @@ def main():
             print(f"Error reading file: {e}. Exiting.")
             sys.exit(1)
 
-    print("\n--- Chat Session Started ---")
-    print("Type 'quit' or 'exit' to end the session.")
+    print("\n--- Chat Started ---")
+    print("Type 'quit' or 'exit' to end the chat.")
     
     is_first_turn = True
     try:
@@ -166,16 +166,16 @@ def main():
                 break
 
             if is_first_turn and file_content:
-                bot_response = chat(args.base_url, session_id, user_input, file_content)
+                bot_response = chat(args.base_url, chat_id, user_input, file_content)
                 is_first_turn = False
             else:
-                bot_response = chat(args.base_url, session_id, user_input)
+                bot_response = chat(args.base_url, chat_id, user_input)
             
             print(f"Bot: {bot_response}")
     
     finally:
-        print("\n--- Chat Session Ended ---")
-        delete_session(args.base_url, session_id)
+        print("\n--- Chat Ended ---")
+        delete_chat(args.base_url, chat_id)
 
 if __name__ == "__main__":
     main()
