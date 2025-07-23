@@ -9,8 +9,8 @@ import json # Import json for pretty printing
 from typing import Dict, Any # Import Dict and Any for type hints
 
 ENDPOINTS = {
+    "change_model": "/change_model", # Switches global model
     "create_session": "/create_session",
-    "change_model": "/change_model", # Keep for completeness, though not directly tested here
     "chat": "/chat",
     "delete_session": "/delete_session"
 }
@@ -63,6 +63,22 @@ def delete_session(base_url: str, session_id: str):
     try:
         url = f"{base_url}{ENDPOINTS['delete_session']}"
         response = requests.post(url, json=payload, timeout=30)
+        if response.status_code == 200:
+            print(f"<-- Success: {response.json().get('message')}")
+        else:
+            print(f"<-- Error ({response.status_code}): {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"<-- API Connection Error: {e}")
+
+
+def change_model(base_url: str, model_parameters: Dict[str, Any]):
+    """Call the /change_model endpoint to switch the global model."""
+    print("--> Changing global model to:")
+    print(json.dumps(model_parameters, indent=2))
+    payload = {"modelParameters": model_parameters}
+    try:
+        url = f"{base_url}{ENDPOINTS['change_model']}"
+        response = requests.post(url, json=payload, timeout=60)
         if response.status_code == 200:
             print(f"<-- Success: {response.json().get('message')}")
         else:

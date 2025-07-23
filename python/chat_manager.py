@@ -122,6 +122,23 @@ class ChatManager:
         except Exception as e:
             logging.error(f"Failed to clear context for session {session_id}: {e}")
 
+    def change_global_model(self, model_params: ModelParameters) -> tuple[bool, str]:
+        """Rebuild the global LangGraph app (Base or RAG) with new parameters."""
+        from models.langchain import set_global_app
+        try:
+            set_global_app(model_params)
+            # Optionally remember as new default for subsequently created sessions
+            self._default_parameters = model_params  # type: ignore
+            message = (
+                f"Global model switched to {model_params.get('model_version', 'Base')} - "
+                f"{model_params.get('hf_params', {}).get('model_name', '')}."
+            )
+            logging.info(message)
+            return True, message
+        except Exception as e:
+            logging.error(f"Failed to switch global model: {e}")
+            return False, f"Failed to switch global model: {str(e)}"
+
     def delete_session(self, session_id: str) -> tuple[bool, str]:
         logging.info(f"Deleting chat session history for {session_id}.")
         current_app = get_global_base_app() # Default to base app for delete operations

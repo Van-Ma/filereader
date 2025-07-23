@@ -307,6 +307,25 @@ def get_global_base_app(model_params: Optional[ModelParameters] = None) -> Any:
         logging.info("Global Base LangGraph application initialized.")
     return _global_base_app
 
+def set_global_app(model_params: ModelParameters) -> None:
+    """Rebuild the requested global LangGraph application with new parameters.
+
+    This is used by ChatManager.change_global_model to hot-swap the underlying
+    LLM without restarting the server.
+    """
+    global _global_base_app, _global_rag_app
+
+    version = model_params.get("model_version", "Base")
+    if version == "RAG":
+        _global_rag_app = None  # Drop existing compiled graph (will be GC'd)
+        _global_rag_app = get_global_rag_app(model_params)
+        _global_base_app = None  # Ensure only one active global
+    else:
+        _global_base_app = None
+        _global_base_app = get_global_base_app(model_params)
+        _global_rag_app = None
+
+
 def get_global_rag_app(model_params: Optional[ModelParameters] = None) -> Any:
     """Returns the single, globally compiled LangGraph application for the RAG model."""
     global _global_rag_app

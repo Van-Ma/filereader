@@ -57,7 +57,29 @@ def create_chat_session():
         logging.exception("Error creating session:")
         return jsonify({"status": "error", "message": f"An internal error occurred: {str(e)}"}), 500
 
-# Removed @app.route('/change_model', methods=['POST']) as it conflicts with single global app concept
+@app.route('/change_model', methods=['POST'])
+def change_model():
+    """Switch the global LangGraph model (Base or RAG) at runtime."""
+    data = request.json or {}
+    model_parameters_dict = data.get('modelParameters')
+
+    if not model_parameters_dict:
+        return jsonify({"status": "error", "message": "'modelParameters' JSON is required."}), 400
+
+    try:
+        success, msg = chat_manager.change_global_model(model_parameters_dict)
+        if success:
+            return jsonify({"status": "success", "message": msg}), 200
+        else:
+            return jsonify({"status": "error", "message": msg}), 500
+    except ValueError as e:
+        logging.error(f"Validation error changing model: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 400
+    except Exception as e:
+        logging.exception("Error changing model:")
+        return jsonify({"status": "error", "message": f"An internal error occurred: {str(e)}"}), 500
+
+# -----------------------------------------------------------------------------
 
 @app.route('/chat', methods=['POST'])
 def chat_message():
