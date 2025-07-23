@@ -126,3 +126,40 @@ modelSelect.addEventListener('change', async () => {
     alert('Failed to switch model. Reverting selection.');
   }
 });
+
+async function handleSend() {
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      appendMessage(prompt, 'user');
+      input.value = '';
+
+      appendMessage('🤖 Thinking...', 'ai');
+
+      // Replace this with your actual API call
+      const response = await fetch('http://127.0.0.1:5000/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const result = await response.json();
+
+      // Remove "Thinking..." placeholder
+      const lastMsg = document.querySelector('.ai-msg:last-child');
+      if (lastMsg && lastMsg.textContent === '🤖 Thinking...') {
+        lastMsg.remove();
+      }
+
+      appendMessage(result.response, 'ai');
+    }
+    //click
+    sendBtn.addEventListener('click', handleSend);
+
+    //enter
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        handleSend();
+      }
+    });
+
