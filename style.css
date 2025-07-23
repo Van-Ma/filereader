@@ -261,7 +261,36 @@
     border-radius: 6px;
     font-size: 0.95rem;
   }
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px 0;
+  user-select: none;
+}
 
+.spinner {
+  border: 6px solid #f3f3f3; /* Light gray */
+  border-top: 6px solid #007bff; /* Blue */
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 8px;
+}
+
+.loading-text {
+  font-size: 10pt;
+  color: #007bff;
+  font-weight: 600;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
   #chat-controls {
     display: flex;
     gap: 0px;
