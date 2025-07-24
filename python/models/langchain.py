@@ -164,12 +164,65 @@ class LangChainBase:
             prompt_messages.insert(0, sys_msg)
             new_state_messages.append(sys_msg)  # persist system msg in thread state
 
-        # 2. If the caller supplied file content, prepend it as context (only for this round)
-        file_chunks = state.get("file_contents", [])
-        if file_chunks:
-            ctx_msg = SystemMessage(content="Additional context provided by the user:\n\n" + "\n\n".join(file_chunks))
-            prompt_messages.insert(1, ctx_msg)
-            # Do *not* add ctx_msg to new_state_messages; we don't want to store bulky files forever
+        # 2. If the caller supplied file content, create structured context
+        file_contents = state.get("file_contents", [])
+        if file_contents:
+            # Create a file index with metadata
+            file_index = []
+            for idx, file_info in enumerate(file_contents, 1):
+                name = file_info.get('name', f'unnamed_file_{idx}')
+                file_type = self._get_file_type(name)
+                file_index.append(f"{idx}. {name} (Type: {file_type})")
+            
+            # Create structured file sections with clear delimiters
+            file_sections = [
+                "## Available Files",
+                "You can reference these files by their number (#1, #2, etc.) or name.",
+                "Example: 'What does #1 say about X?' or 'Compare #2 and #3'",
+                "\n".join(file_index),
+                "",
+                "### File Contents:"
+            ]
+            
+            # Add each file's content with clear headers
+            for idx, file_info in enumerate(file_contents, 1):
+                name = file_info.get('name', f'unnamed_file_{idx}')
+                content = file_info.get('content', '').strip()
+                if not content:
+                    continue
+                    
+                file_sections.extend([
+                    f"\n### File {idx}: {name}",
+                    "```" + self._get_file_extension(name),
+                    content,
+                    "```"
+                ])
+            
+            # Only add file context if we have content
+            if len(file_sections) > 6:  # More than just the headers
+                ctx_msg = SystemMessage(content="\n".join(file_sections))
+                
+                # Remove any existing file context messages
+                prompt_messages = [
+                    m for m in prompt_messages 
+                    if not (isinstance(m, SystemMessage) and 
+                          m.content.startswith("## Available Files"))
+                ]
+                
+                # Insert the new file context after the system message
+                insert_pos = 1 if (prompt_messages and 
+                                isinstance(prompt_messages[0], SystemMessage) and 
+                                not prompt_messages[0].content.startswith("## Available Files")) else 0
+                prompt_messages.insert(insert_pos, ctx_msg)
+                
+                # Update state with the new file context
+                new_state_messages = [m for m in new_state_messages 
+                                   if not (isinstance(m, SystemMessage) and 
+                                         m.content.startswith("## Available Files"))]
+                if new_state_messages:
+                    new_state_messages.insert(0, ctx_msg)
+                else:
+                    new_state_messages.append(ctx_msg)
 
         # 3. Invoke the underlying LLM
         if self.use_kv_cache:
@@ -185,6 +238,75 @@ class LangChainBase:
 
         new_state_messages.append(AIMessage(content=cleaned_response))
         return {"messages": new_state_messages}
+
+    @staticmethod
+    def _get_file_type(filename: str) -> str:
+        """Determine file type based on extension"""
+        ext = filename.split('.')[-1].lower()
+        file_types = {
+            'py': 'Python',
+            'js': 'JavaScript',
+            'json': 'JSON',
+            'csv': 'CSV',
+            'md': 'Markdown',
+            'txt': 'Text',
+            'html': 'HTML',
+            'css': 'CSS',
+            'java': 'Java',
+            'c': 'C',
+            'cpp': 'C++',
+            'h': 'Header',
+            'hpp': 'C++ Header',
+            'go': 'Go',
+            'rs': 'Rust',
+            'rb': 'Ruby',
+            'php': 'PHP',
+            'ts': 'TypeScript',
+            'tsx': 'TypeScript React',
+            'jsx': 'JavaScript React',
+            'sh': 'Shell Script',
+            'bat': 'Batch',
+            'ps1': 'PowerShell',
+            'sql': 'SQL',
+            'yaml': 'YAML',
+            'yml': 'YAML',
+            'xml': 'XML'
+        }
+        return file_types.get(ext, 'Text')
+
+    @staticmethod
+    def _get_file_extension(filename: str) -> str:
+        """Get the file extension for syntax highlighting"""
+        ext = filename.split('.')[-1].lower()
+        # Common syntax highlighting modes in markdown
+        highlight_modes = {
+            'py': 'python',
+            'js': 'javascript',
+            'jsx': 'jsx',
+            'ts': 'typescript',
+            'tsx': 'tsx',
+            'json': 'json',
+            'html': 'html',
+            'css': 'css',
+            'java': 'java',
+            'c': 'c',
+            'cpp': 'cpp',
+            'h': 'c',
+            'hpp': 'cpp',
+            'go': 'go',
+            'rs': 'rust',
+            'rb': 'ruby',
+            'php': 'php',
+            'sh': 'bash',
+            'bat': 'batch',
+            'ps1': 'powershell',
+            'sql': 'sql',
+            'yaml': 'yaml',
+            'yml': 'yaml',
+            'xml': 'xml',
+            'md': 'markdown'
+        }
+        return highlight_modes.get(ext, '')
 
     @staticmethod
     def _strip_special_tokens(text: str) -> str:
@@ -227,18 +349,44 @@ class LangChainRAG(LangChainBase):
     def _add_documents_node(self, state: ChatState) -> Dict[str, Any]:
         if state["file_contents"]:
             logging.info("Adding {} new file(s) to retriever.".format(len(state['file_contents'])))
-            combined_content = "\n\n".join(state["file_contents"])
-            texts = self.text_splitter.split_text(combined_content)
-            docs = [Document(page_content=t) for t in texts]
             
-            if self.vectorstore is None:
-                self.vectorstore = FAISS.from_documents(docs, self.embeddings)
-            else:
-                self.vectorstore.add_documents(docs)
+            # Process each file individually to maintain source metadata
+            all_docs = []
+            for file_info in state["file_contents"]:
+                name = file_info.get('name', 'unnamed_file')
+                content = file_info.get('content', '')
+                
+                # Skip empty files
+                if not content.strip():
+                    continue
+                
+                # Split the content into chunks
+                texts = self.text_splitter.split_text(content)
+                
+                # Create documents with metadata
+                for i, text in enumerate(texts):
+                    doc = Document(
+                        page_content=text,
+                        metadata={
+                            "source": name,
+                            "chunk": i,
+                            "total_chunks": len(texts),
+                            "file_type": self._get_file_type(name)
+                        }
+                    )
+                    all_docs.append(doc)
             
-            logging.info(f"Successfully added {len(docs)} document chunks to vector store.")
-            return {"rag_enabled": True} 
-        return {}
+            # Add to vector store
+            if all_docs:
+                if self.vectorstore is None:
+                    self.vectorstore = FAISS.from_documents(all_docs, self.embeddings)
+                else:
+                    self.vectorstore.add_documents(all_docs)
+                
+                logging.info(f"Successfully added {len(all_docs)} document chunks from {len(state['file_contents'])} files to vector store.")
+                return {"rag_enabled": True, "files_processed": len(state['file_contents'])}
+            
+        return {"rag_enabled": False}
 
     def _route_to_rag_or_base(self, state: ChatState) -> str:
         if state.get("rag_enabled", False) and self.vectorstore.index.ntotal > 0:
@@ -268,15 +416,58 @@ class LangChainRAG(LangChainBase):
         question = state["messages"][-1].content
         chat_history = state["messages"][:-1]
 
-        document_chain = create_stuff_documents_chain(self.llm, self.document_chain_prompt)
+        # Enhance the context with source information
+        enhanced_context = []
+        source_map = {}
+        
+        # Group chunks by source file
+        for doc in context_docs:
+            source = doc.metadata.get('source', 'unknown')
+            if source not in source_map:
+                source_map[source] = []
+            source_map[source].append(doc)
+        
+        # Create a structured context with source information
+        for source, docs in source_map.items():
+            file_type = docs[0].metadata.get('file_type', 'document')
+            enhanced_context.append(f"## Source: {source} (Type: {file_type})")
+            for doc in docs:
+                enhanced_context.append(f"### Chunk {doc.metadata.get('chunk', 0) + 1} of {doc.metadata.get('total_chunks', 1)}")
+                enhanced_context.append(doc.page_content)
+                enhanced_context.append("\n---\n")
+        
+        # Create a more informative prompt
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are a helpful assistant that answers questions based on the provided context.
+            The context comes from the following sources:
+            {sources_list}
+            
+            When answering questions:
+            1. Always cite your sources using the format [source: filename]
+            2. If you're not sure, say so
+            3. Be concise but thorough
+            
+            Available context:
+            {context}
+            """),
+            MessagesPlaceholder(variable_name="messages"),
+            ("user", "{input}")
+        ])
+        
+        # Format the sources list for the prompt
+        sources_list = "\n".join([f"- {source} ({len(docs)} chunks)" for source, docs in source_map.items()])
+        
+        document_chain = create_stuff_documents_chain(self.llm, prompt)
 
         response = document_chain.invoke({
-            "context": context_docs,
+            "context": "\n".join(enhanced_context),
+            "sources_list": sources_list,
             "input": question,
             "messages": chat_history
         })
-
-        return {"messages": [AIMessage(content=response)]}
+        
+        # Return the AI's response along with the chat history
+        return {"messages": [*chat_history, AIMessage(content=response)]}
 
 # --- Global LangGraph App Getters ---
 
