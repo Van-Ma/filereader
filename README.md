@@ -1,16 +1,17 @@
 # UnRead Chatbot
 
-A multi-model chat application with document analysis capabilities, supporting local LLMs through LangChain and Hugging Face with an Electron frontend.
+A multi-model chat application with advanced document analysis capabilities, supporting local LLMs through LangChain and Hugging Face with an Electron frontend.
 
 ![Chat Preview](./docs/assets/chat_preview_1.png)
 
 ## Features
 
 - Chat with various LLM models locally
-- Document analysis and Q&A
+- Advanced document analysis with multi-file support
+- Persistent chat sessions with context management
 - Support for multiple concurrent chat sessions
 - Optimized with KV cache for better performance
-- Clean, responsive UI
+- Clean, responsive UI with file upload interface
 
 ## Quick Start
 

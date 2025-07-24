@@ -83,25 +83,63 @@ def change_model():
 
 @app.route('/chat', methods=['POST'])
 def chat_message():
-    data = request.json
+    """Handle a chat message with optional file attachments.
+    
+    Request JSON format:
+    {
+        "chatId": "unique-chat-id",
+        "message": "user's message text",
+        "files": [
+            {
+                "name": "filename.txt",
+                "content": "file content as string"
+            },
+            ...
+        ],
+        "modelParameters": { ... }  # Optional
+    }
+    
+    Response:
+    {
+        "status": "success",
+        "response": "AI's response text"
+    }
+    """
+    data = request.json or {}
     chat_id = data.get('chatId')
-    message = data.get('message')
-    # Allow caller to specify model parameters inline with chat if chat was not created explicitly
+    message = data.get('message', '').strip()
+    files = data.get('files', [])
     model_parameters_dict = data.get('modelParameters')
-    file_content = data.get('fileContent') # This will be passed to LangGraph state
 
-    if not chat_id or not message:
-        return jsonify({"status": "error", "message": "Chat ID and message are required."}), 400
+    if not chat_id:
+        return jsonify({"status": "error", "message": "Chat ID is required"}), 400
+        
+    if not message and not files:
+        return jsonify({"status": "error", "message": "Message or file content is required"}), 400
 
     try:
-        # chat_manager now directly interfaces with the global LangGraph app
-        response_data = chat_manager.chat(chat_id, message, file_content, model_parameters_dict)
+        # chat_manager now handles multiple files with names
+        response_data = chat_manager.chat(
+            chat_id=chat_id,
+            user_input=message,
+            files=files,
+            model_params=model_parameters_dict
+        )
+        
         if response_data.get("error"):
             return jsonify({"status": "error", "message": response_data["response"]}), 500
-        return jsonify({"status": "success", "response": response_data["response"]}), 200
+            
+        return jsonify({
+            "status": "success",
+            "response": response_data["response"]
+        })
+        
     except Exception as e:
-        logging.exception(f"Error during chat for chat {chat_id}:")
-        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+        logging.exception("Error in chat endpoint:")
+        return jsonify({
+            "status": "error",
+            "message": f"An error occurred: {str(e)}"
+        }), 500
 
 @app.route('/get_context_history', methods=['POST'])
 def get_context_history():
@@ -127,11 +165,15 @@ def clear_context():
         return jsonify({"status": "error", "message": "Chat ID is required."}), 400
 
     try:
-        chat_manager.clear_context(chat_id)
-        return jsonify({"status": "success", "message": f"Context for chat {chat_id} cleared."}), 200
+        success, message = chat_manager.clear_context(chat_id)
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "error", "message": message}), 500
     except Exception as e:
+        error_msg = f"An error occurred while clearing context: {str(e)}"
         logging.exception(f"Error clearing context for chat {chat_id}:")
-        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"status": "error", "message": error_msg}), 500
 
 @app.route('/delete_chat', methods=['POST'])
 def delete_chat():
