@@ -1,165 +1,115 @@
-// Get elements once
 const modelSelect = document.getElementById('model-select');
 const chatIdElement = document.getElementById('chat-id');
-const chatOutput = document.getElementById('chat-output'); // Assuming you have this element
-const aiInput = document.getElementById('ai-input');       // Assuming you have this element
+const chatOutput = document.getElementById('chat-output');
+const aiInput = document.getElementById('ai-input');
+const sendBtn = document.getElementById('ai-send');
+const baseUrl = "http://127.0.0.1:5000";
 
-// Store previous model value
-let previousModelValue = modelSelect.value;
-let currentTabId = null; // Define or get this from your tabs management
-let tabs = [];           // Define or get your tabs array
+let previousModelValue = modelSelect?.value || '';
+let chatId = null;
 
-// Function to request a new chat ID from backend
-async function requestNewChatId() {
-  try {
-    const response = await fetch('http://127.0.0.1:5000/create_chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}) // Empty body to create new chat
-    });
+async function initializeChat() {
+  const modelVersion = "Base";  
+  const modelName = "meta-llama/Llama-3.2-1B-Instruct"; 
 
-    const data = await response.json();
-
-    if (response.ok && data.status === 'success' && data.chatId) {
-      // Store new chatId as chat_id in localStorage for compatibility
-      localStorage.setItem('chat_id', data.chatId);
-
-      // Update UI
-      if (chatIdElement) {
-        chatIdElement.textContent = `Chat ID: ${data.chatId}`;
+  const payload = {
+    modelParameters: {
+      framework_type: "LangChain",
+      backend: "HuggingFace",
+      model_version: "Base",  
+      hf_params: {
+        model_name: "meta-llama/Llama-3.2-1B-Instruct",
+        use_kv_cache: false
       }
-
-      window.currentChatId = data.chatId;
-      return data.chatId;
-    } else {
-      alert('Failed to create new chat: ' + (data.error || 'Unknown error'));
-      return null;
     }
-  } catch (error) {
-    alert('Error creating new chat: ' + error.message);
-    return null;
-  }
-}
+  };
 
-// Run on page load: fetch stored or create new chat
-async function fetchAndStoreChatId() {
-  let storedChatId = localStorage.getItem('chat_id');
-  if (storedChatId) {
-    // Display existing ID
-    if (chatIdElement) chatIdElement.textContent = `Chat ID: ${storedChatId}`;
-    window.currentChatId = storedChatId;
+  const response = await fetch(`${baseUrl}/create_chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  if (response.ok) {
+    chatId = data.chatId;
+    console.log("Chat initialized:", chatId);
   } else {
-    // No stored ID — request new one
-    await requestNewChatId();
+    throw new Error(data.message || "Failed to start chat");
   }
 }
 
-window.addEventListener('DOMContentLoaded', fetchAndStoreChatId);
+async function sendMessage() {
+  if (!chatId) await initializeChat();
 
-// Call /select_model to set the model for the chat
-async function selectModelForChat() {
+  const message = aiInput.value.trim();
+  if (!message) return;
+
+  const payload = {
+    chatId: chatId,
+    message: message
+  };
+
+  chatOutput.innerHTML += `<div class='user'><b></b> ${message}</div>`;
+  aiInput.value = "";
+
+  const response = await fetch(`${baseUrl}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  if (response.ok) {
+    chatOutput.innerHTML += `<div class='bot'><b></b> ${data.response}</div>`;
+  } else {
+    chatOutput.innerHTML += `<div class='bot error'><b>Error:</b> ${data.message}</div>`;
+  }
+
+  chatOutput.scrollTop = chatOutput.scrollHeight;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  aiInput.disabled = true;
   try {
-    const selectedModel = modelSelect.value;
-
-    const response = await fetch('http://127.0.0.1:5000/select_model', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        modelType: selectedModel
-      })
-    });
-
-    if (!response.ok) throw new Error(`Model selection failed: ${response.statusText}`);
-    const data = await response.json();
-    console.log(`Model selected for chat:`, data);
-    return true;
+    await initializeChat();
+    aiInput.disabled = false;
+    aiInput.focus();
   } catch (err) {
-    console.error('Error selecting model:', err);
-    return false;
+    alert("Failed to initialize chat: " + err.message);
   }
-}
+});
 
-// Model selection event listener
 modelSelect.addEventListener('change', async () => {
-  const chat = currentChatId ? chats.find(c => c.id === currentChatId) : null;
   const newModelValue = modelSelect.value;
-
-  const confirmSwitch = confirm(
-    `Switch to model:\n"${newModelValue}"?\n\nThis will start a new chat and delete chat history.`
-  );
+  const confirmSwitch = confirm(`Switch to model "${newModelValue}"?\n\nThis will start a new chat and clear history.`);
 
   if (!confirmSwitch) {
     modelSelect.value = previousModelValue;
     return;
   }
 
-  if (tab) {
-    // Reset chat history on tab if exists
-    tab.chatId = createChatId(); // Make sure createChatId() is defined
-    tab.chatHistory = [];
-    tab.modelSelected = false;
-    if (chatOutput) chatOutput.innerHTML = '';
-    tab.model = newModelValue;
-  }
+  if (chatOutput) chatOutput.innerHTML = '';
+  aiInput.disabled = true;
 
-  // Show loader while backend selects model
-  showModelLoader(); // Ensure this function exists
+  showModelLoader?.();
 
-  // Call backend to select new model
-  const success = await selectModelForChat();
-
-  // Hide loader when done
-  hideModelLoader(); // Ensure this function exists
-
-  if (success) {
-    if (tab) tab.modelSelected = true;
+  try {
+    await initializeChat();
     previousModelValue = newModelValue;
-
-    console.log(`✅ Switched to model: ${newModelValue}`);
-
-    if (aiInput) {
-      aiInput.disabled = false;
-      aiInput.focus();
-    }
-  } else {
+    aiInput.disabled = false;
+    aiInput.focus();
+  } catch (err) {
     modelSelect.value = previousModelValue;
-    alert('Failed to switch model. Reverting selection.');
+    alert('Model switch failed: ' + err.message);
   }
+
+  hideModelLoader?.();
 });
 
-async function handleSend() {
-      const prompt = input.value.trim();
-      if (!prompt) return;
-
-      appendMessage(prompt, 'user');
-      input.value = '';
-
-      appendMessage('🤖 Thinking...', 'ai');
-
-      // Replace this with your actual API call
-      const response = await fetch('http://127.0.0.1:5000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-
-      const result = await response.json();
-
-      // Remove "Thinking..." placeholder
-      const lastMsg = document.querySelector('.ai-msg:last-child');
-      if (lastMsg && lastMsg.textContent === '🤖 Thinking...') {
-        lastMsg.remove();
-      }
-
-      appendMessage(result.response, 'ai');
-    }
-    //click
-    sendBtn.addEventListener('click', handleSend);
-
-    //enter
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        handleSend();
-      }
-    });
-
+sendBtn.addEventListener('click', sendMessage);
+aiInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    sendMessage();
+  }
+});

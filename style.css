@@ -322,6 +322,34 @@
     font-size: 0.95rem;
   }
 
+  #chat-output .user,
+#chat-output .bot {
+  margin-bottom: 10px;
+  padding: 5px;
+  border-radius: 15px;
+  max-width: 90%;
+  word-wrap: break-word;
+  line-height: 2;
+  font-size: 12pt;
+  max-width: 50%;
+
+}
+
+#chat-output .user {
+  background: #dcedff;
+    border-color: #007bff;
+    color: #007bff;
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+#chat-output .bot {
+  color: black;
+  align-self: flex-start;
+  margin-right: auto;
+  text-align: left;
+}
+
   .loader-container {
     display: flex;
     flex-direction: column;

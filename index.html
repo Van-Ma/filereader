@@ -144,7 +144,6 @@
     const dropArea = document.getElementById('drop-area');
     const fileInput = document.getElementById('file-input');
     const fileContentDiv = document.getElementById('file-content');
-    const sendButton = document.getElementById('ai-send');
     const tabBar = document.getElementById('tab-bar');
     const fileBtn = document.getElementById('file-btn');
     const fileSubmenu = document.getElementById('file-submenu');
@@ -234,6 +233,7 @@
       chatBtn.classList.add("active");
       fileBtn.classList.remove("active");
       toggleSubmenu(chatBtn, chatSubmenu);
+
     });
     //navigation submenu tabs 
     document.getElementById("exit-tab-btn").addEventListener("click", function () {
@@ -398,7 +398,7 @@
     fileInput.addEventListener('change', (e) => {
       if (fileInput.files.length > 0) {
         handleFile(fileInput.files[0]);
-        fileInput.value = '';  // <-- reset so user can select same file again
+        fileInput.value = '';  
       }
     });
 
@@ -503,7 +503,10 @@
       chatOutput.appendChild(msgDiv);
       chatOutput.scrollTop = chatOutput.scrollHeight;
     }
-  
+
+
+
+
   </script>
   <script src="http_service.js" type="module"></script>
 </body>
